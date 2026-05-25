@@ -1,0 +1,24 @@
+name: Specs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "*.yaml"
+      - ".github/workflows/lint.yml"
+  pull_request:
+    paths:
+      - "*.yaml"
+      - ".github/workflows/lint.yml"
+
+jobs:
+  lint:
+    name: Lint OpenAPI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Lint specs
+        run: npx --yes @redocly/cli@latest lint connect.yaml native.yaml

@@ -21,6 +21,9 @@ info:
 servers:
   - url: https://native-api.sudomimus.com
     description: Production
+# No HTTP-level auth: the direct-issue endpoints authenticate via credentials
+# (Steam ticket / access-key) carried in the request body.
+security: []
 paths:
   /direct-issue/access-key:
     post:

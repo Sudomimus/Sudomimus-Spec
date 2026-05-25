@@ -14,6 +14,10 @@ info:
 servers:
   - url: https://connect-api.sudomimus.com
     description: Production
+# Default: no HTTP-level auth. Endpoints other than /establish carry their
+# credentials (inquiry / refresh tokens) in the request body. /establish
+# overrides this with the SudomimusClientJWT scheme.
+security: []
 paths:
   /health:
     get:

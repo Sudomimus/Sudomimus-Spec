@@ -5,8 +5,8 @@ Sudomimus APIs. One file per public service.
 
 | File | Service | Purpose |
 | --- | --- | --- |
-| [`connect.yaml`](connect.yaml) | `connect` | Token exchange (Establish / Redeem / Refresh) |
-| [`native.yaml`](native.yaml) | `native` | Native client entry point |
+| [`connect.yaml`](connect.yaml) | `connect` | Token exchange + session revocation (Establish / StatusPoll / Redeem / Refresh / Info / Introspect / Logout / RevokeAll) |
+| [`native.yaml`](native.yaml) | `native` | Direct-issue (Steam ticket / access key) |
 
 ## Source of truth
 

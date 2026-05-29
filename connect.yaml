@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Connect
-  version: 0.2.0
+  version: 0.3.0
   summary: Token exchange API for the Sudomimus authentication platform.
   description: |
     The Connect API is the public entry point for integrating applications.
@@ -71,6 +71,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "403":
+          description: |
+            Application has been disabled via the admin kill switch.
+            Reason `ApplicationDisabled`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         default:
           description: Error response.
           content:
@@ -117,6 +125,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RedeemResponse"
+        "400":
+          description: |
+            The inquiry could not be redeemed. The `reason` distinguishes:
+
+            - `InquiryNotFound` — the `(exposureKey, hiddenKey,
+              confirmationKey)` triple does not resolve to a realized
+              inquiry.
+            - `InquiryNotRealized` — the inquiry exists but has not been
+              realized yet.
+            - `InquiryAlreadyRedeemed` — the inquiry has already been
+              consumed (single-use guard via conditional write; also
+              fires after a REVEAL realize that surfaces the tokens
+              in-line and immediately marks the inquiry redeemed).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: |
+            Application has been disabled via the admin kill switch.
+            Reason `ApplicationDisabled`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         default:
           description: Error response.
           content:
@@ -126,7 +159,22 @@ paths:
   /refresh:
     post:
       operationId: refresh
-      summary: Issue a new access token from a refresh token.
+      summary: Rotate a refresh token and issue a new access token.
+      description: |
+        Issues a new access token AND a new refresh token, atomically
+        invalidating the presented refresh token. The Connect service
+        implements OAuth 2.1 BCP §4.14.2 strict refresh-token rotation:
+        every successful `/refresh` rotates the refresh token, and any
+        subsequent presentation of the parent token (the one just
+        consumed) is treated as evidence of compromise.
+
+        On compromise, the entire refresh-token family that the replayed
+        token belongs to is revoked in a single sweep and the caller must
+        re-authenticate via the normal Connect inquiry flow
+        (`/establish` → `/status-poll` → `/redeem`). The same outcome
+        applies when a concurrent rotation race is lost — per BCP §4.14.2
+        a perfectly-timed retry is indistinguishable from an attacker
+        racing the legitimate caller, so both paths count as compromise.
       requestBody:
         required: true
         content:
@@ -135,11 +183,30 @@ paths:
               $ref: "#/components/schemas/RefreshRequest"
       responses:
         "200":
-          description: Access token issued.
+          description: New access token and rotated refresh token issued.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/RefreshResponse"
+        "401":
+          description: |
+            Refresh token rejected. The `reason` distinguishes:
+
+            - `RefreshTokenNotFound` — token cannot be resolved (unknown
+              `jti`, wrong signature, or otherwise invalid).
+            - `RefreshTokenSuspended` — the row is administratively
+              suspended.
+            - `RefreshTokenExpired` — the token is past its `exp`.
+            - `RefreshTokenFamilyCompromised` — the presented token had
+              already been rotated; the whole family has now been
+              revoked.
+            - `RefreshTokenRotationRaceLost` — a concurrent rotation won
+              the conditional write. Per OAuth 2.1 BCP §4.14.2 this is
+              also treated as compromise and the family is revoked.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         default:
           description: Error response.
           content:
@@ -444,10 +511,18 @@ components:
       type: object
       required:
         - accessToken
+        - refreshToken
       properties:
         accessToken:
           type: string
-          description: Short-lived access token (JWT). No new refresh token is issued.
+          description: Short-lived access token (JWT).
+        refreshToken:
+          type: string
+          description: |
+            Newly issued refresh token (JWT). The presented refresh
+            token is invalidated atomically as part of the same call;
+            re-presenting it is treated as compromise under OAuth 2.1
+            BCP §4.14.2 strict rotation.
     InfoRequest:
       type: object
       required:
@@ -545,10 +620,22 @@ components:
           enum:
             - PASSKEY
             - EMAIL_VERIFICATION
+            - STEAM_TICKET
+            - STEAM_OPENID
+            - ACCESS_KEY_DIRECT
+            - GOOGLE_OAUTH
+            - GITHUB_OAUTH
+            - DISCORD_OAUTH
         payload:
           oneOf:
             - $ref: "#/components/schemas/AuthenticationRulePasskeyPayload"
             - $ref: "#/components/schemas/AuthenticationRuleEmailVerificationPayload"
+            - $ref: "#/components/schemas/AuthenticationRuleSteamTicketPayload"
+            - $ref: "#/components/schemas/AuthenticationRuleSteamOpenIdPayload"
+            - $ref: "#/components/schemas/AuthenticationRuleAccessKeyDirectPayload"
+            - $ref: "#/components/schemas/AuthenticationRuleGoogleOAuthPayload"
+            - $ref: "#/components/schemas/AuthenticationRuleGitHubOAuthPayload"
+            - $ref: "#/components/schemas/AuthenticationRuleDiscordOAuthPayload"
         accessTokenTtlSeconds:
           type: integer
           description: Per-constraint override for access token lifetime. Resolved at realize time.
@@ -557,11 +644,87 @@ components:
           description: Per-constraint override for refresh token lifetime. Resolved at realize time.
     AuthenticationRulePasskeyPayload:
       type: object
-      description: Empty payload — passkey constraints carry no further parameters.
+      description: |
+        Passkey-method payload. `allowUsernameless` opts the application
+        in to discoverable-credential ("usernameless") passkey login,
+        where the user authenticates without first entering an email.
+        Absent or `false` keeps the email-first flow; only the entry
+        path is affected — realize authorization is still decided
+        entirely by Layer 2.
       additionalProperties: false
+      properties:
+        allowUsernameless:
+          type: boolean
     AuthenticationRuleEmailVerificationPayload:
       type: object
       description: Empty payload — email-verification constraints carry no further parameters.
+      additionalProperties: false
+    AuthenticationRuleSteamTicketPayload:
+      type: object
+      description: |
+        Steam-native-ticket payload. Gates native-api's
+        `/direct-issue/steam-ticket` flow. `allowedSteamAppIds` is the
+        non-empty list of Steam App IDs whose tickets are accepted.
+      required:
+        - allowedSteamAppIds
+      additionalProperties: false
+      properties:
+        allowedSteamAppIds:
+          type: array
+          minItems: 1
+          items:
+            type: integer
+            format: int64
+            minimum: 1
+    AuthenticationRuleSteamOpenIdPayload:
+      type: object
+      description: |
+        Steam OpenID 2.0 carries no app-id concept (that is
+        native-ticket-specific). Any Steam account is accepted as long
+        as the application's rule set allows STEAM_OPENID at all.
+      additionalProperties: false
+    AuthenticationRuleAccessKeyDirectPayload:
+      type: object
+      description: |
+        Gates native-api's `/direct-issue/access-key` flow. Credentials
+        live in the dedicated `AccessKeyCredential` table; no row of
+        this method ever appears in the `Authentication` table.
+      additionalProperties: false
+    AuthenticationRuleGoogleOAuthPayload:
+      type: object
+      description: |
+        Phase 1: any Google account is accepted as long as the
+        application's rule set allows GOOGLE_OAUTH at all. A later
+        phase will add `allowedHostedDomains: string[]` for Google
+        Workspace gating.
+      additionalProperties: false
+    AuthenticationRuleGitHubOAuthPayload:
+      type: object
+      description: |
+        Empty `allowedGitHubOrgs` array means no org gating — any
+        GitHub account is accepted. Non-empty means the user must be a
+        member of at least one listed organization (case-insensitive
+        match on the org `login`). The `read:org` OAuth scope is only
+        requested when at least one matching rule carries a non-empty
+        allowlist; applications without org gating keep the minimal
+        `read:user user:email` consent screen.
+      required:
+        - allowedGitHubOrgs
+      additionalProperties: false
+      properties:
+        allowedGitHubOrgs:
+          type: array
+          items:
+            type: string
+            minLength: 1
+    AuthenticationRuleDiscordOAuthPayload:
+      type: object
+      description: |
+        Phase 1: any Discord account is accepted as long as the
+        application's rule set allows DISCORD_OAUTH at all. Phase 1.5
+        will add `allowedDiscordGuilds: string[]` for guild (server)
+        gating, which will additionally request the `guilds` OAuth
+        scope and fetch `GET /users/@me/guilds`.
       additionalProperties: false
     RealizeRuleConstraint:
       type: object
@@ -574,8 +737,13 @@ components:
           description: Which realize-rule kind this constraint narrows to.
           enum:
             - EMAIL
+            - STEAM_ID
+            - ACCOUNT_IDENTIFIER
         payload:
-          $ref: "#/components/schemas/RealizeRuleEmailPayload"
+          oneOf:
+            - $ref: "#/components/schemas/RealizeRuleEmailPayload"
+            - $ref: "#/components/schemas/RealizeRuleSteamIdPayload"
+            - $ref: "#/components/schemas/RealizeRuleAccountIdentifierPayload"
         accessTokenTtlSeconds:
           type: integer
           description: Per-constraint override for access token lifetime. Resolved at realize time.
@@ -595,17 +763,51 @@ components:
             prevent regex backtracking attacks.
           items:
             type: string
+    RealizeRuleSteamIdPayload:
+      type: object
+      description: |
+        Per-realize-time check against the realized account's SteamID64.
+        Each entry is either the literal `"*"` (wildcard, allow any
+        Steam identity) or a decimal SteamID64 string.
+      required:
+        - allowedSteamIds
+      properties:
+        allowedSteamIds:
+          type: array
+          items:
+            type: string
+            pattern: "^(\\*|[0-9]{1,20})$"
+    RealizeRuleAccountIdentifierPayload:
+      type: object
+      description: |
+        Exact match on the realizing account's UUID. No wildcard —
+        because the account does not yet exist during fresh
+        registration, this constraint matches nothing for new sign-ups,
+        so use it only for known-existing accounts.
+      required:
+        - allowedAccountIdentifiers
+      properties:
+        allowedAccountIdentifiers:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 128
     ReturnMethodDeclaration:
       oneOf:
         - $ref: "#/components/schemas/ReturnMethodCallback"
         - $ref: "#/components/schemas/ReturnMethodStatusPoll"
         - $ref: "#/components/schemas/ReturnMethodReveal"
+        - $ref: "#/components/schemas/ReturnMethodDirectIssue"
+        - $ref: "#/components/schemas/ReturnMethodOidc"
       discriminator:
         propertyName: type
         mapping:
           CALLBACK: "#/components/schemas/ReturnMethodCallback"
           STATUS_POLL: "#/components/schemas/ReturnMethodStatusPoll"
           REVEAL: "#/components/schemas/ReturnMethodReveal"
+          DIRECT_ISSUE: "#/components/schemas/ReturnMethodDirectIssue"
+          OIDC: "#/components/schemas/ReturnMethodOidc"
     ReturnMethodCallback:
       type: object
       required:
@@ -652,7 +854,47 @@ components:
             - REVEAL
         payload:
           type: object
-          description: Empty payload — REVEAL surfaces tokens directly in the UI.
+          description: |
+            Empty payload. Tokens are surfaced directly in the UI at
+            realize time and the inquiry is marked redeemed immediately;
+            any subsequent `/redeem` for the same inquiry fails with
+            `InquiryAlreadyRedeemed`.
+          additionalProperties: false
+    ReturnMethodDirectIssue:
+      type: object
+      required:
+        - type
+        - payload
+      properties:
+        type:
+          type: string
+          enum:
+            - DIRECT_ISSUE
+        payload:
+          type: object
+          description: |
+            Empty payload. Opts the application in to native-api's
+            direct-issue flows (`/direct-issue/steam-ticket`,
+            `/direct-issue/access-key`). Per-inquiry payload is empty
+            because direct-issue does not flow through `/establish`.
+          additionalProperties: false
+    ReturnMethodOidc:
+      type: object
+      required:
+        - type
+        - payload
+      properties:
+        type:
+          type: string
+          enum:
+            - OIDC
+        payload:
+          type: object
+          description: |
+            Accepted on the wire for symmetry, but in practice OIDC is
+            not declared per-inquiry — the OIDC API drives its own
+            inquiry against Connect via CALLBACK-to-self. The matching
+            per-inquiry payload is therefore empty.
           additionalProperties: false
     Error:
       type: object

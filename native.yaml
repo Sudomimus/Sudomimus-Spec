@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Native
-  version: 0.1.0
+  version: 0.2.0
   summary: Native client entry point for the Sudomimus authentication platform.
   description: |
     The Native API is the public gateway used by native clients
@@ -25,6 +25,17 @@ servers:
 # (Steam ticket / access-key) carried in the request body.
 security: []
 paths:
+  /health:
+    get:
+      operationId: health
+      summary: Liveness probe for the Native service.
+      responses:
+        "200":
+          description: Service is ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
   /direct-issue/access-key:
     post:
       operationId: directIssueAccessKey
@@ -87,9 +98,13 @@ paths:
                 $ref: "#/components/schemas/Error"
         "403":
           description: |
-            The application's three-layer rules denied the attempt. The
-            response `reason` distinguishes which layer rejected:
-            `Layer1Denied`, `Layer2Denied`, or `Layer3Denied`.
+            The attempt was refused. The response `reason` distinguishes:
+
+            - `Layer1Denied`, `Layer2Denied`, `Layer3Denied` — the
+              application's three-layer rules rejected this attempt
+              (which layer is indicated by the reason code).
+            - `ApplicationDisabled` — the application has been disabled
+              via the admin kill switch.
           content:
             application/json:
               schema:
@@ -141,6 +156,11 @@ paths:
         Tokens follow the same shape as those issued through Connect's
         `/redeem`. Verification is the responsibility of the relying party
         (see the `Sudomimus.Token` SDK).
+
+        The Layer-1 method name on the wire is `STEAM_TICKET`, but the
+        resolved identity is stored as a `STEAM_ID64` Authentication row
+        — `STEAM_TICKET` and `STEAM_OPENID` share a single identity row
+        per SteamID64, differing only in how the SteamID64 was proven.
       requestBody:
         required: true
         content:
@@ -168,9 +188,13 @@ paths:
                 $ref: "#/components/schemas/Error"
         "403":
           description: |
-            The application's three-layer rules denied the attempt. The
-            response `reason` distinguishes which layer rejected:
-            `Layer1Denied`, `Layer2Denied`, or `Layer3Denied`.
+            The attempt was refused. The response `reason` distinguishes:
+
+            - `Layer1Denied`, `Layer2Denied`, `Layer3Denied` — the
+              application's three-layer rules rejected this attempt
+              (which layer is indicated by the reason code).
+            - `ApplicationDisabled` — the application has been disabled
+              via the admin kill switch.
           content:
             application/json:
               schema:
@@ -204,6 +228,19 @@ paths:
                 $ref: "#/components/schemas/Error"
 components:
   schemas:
+    HealthResponse:
+      type: object
+      required:
+        - ready
+        - service
+        - version
+      properties:
+        ready:
+          type: boolean
+        service:
+          type: string
+        version:
+          type: string
     DirectIssueAccessKeyRequest:
       type: object
       required:

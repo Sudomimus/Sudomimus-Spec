@@ -595,11 +595,16 @@ components:
     RevokeAllRequest:
       type: object
       required:
-        - accountIdentifier
+        - subject
       properties:
-        accountIdentifier:
+        subject:
           type: string
-          description: Identifier of the account whose sessions should be revoked for the calling application.
+          description: >-
+            The sector subject the application sees for the user (the access /
+            id token `sub`). Reverse-mapped server-side to the underlying
+            account, whose sessions are then revoked for the calling
+            application. A subject the application has never been issued (or one
+            from another sector) revokes nothing.
     RevokeAllResponse:
       type: object
       required:

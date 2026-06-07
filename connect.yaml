@@ -723,7 +723,8 @@ components:
           type: string
           description: Which authentication method this constraint narrows to.
           enum:
-            - PASSKEY
+            - PASSKEY_USERNAMELESS
+            - PASSKEY_REASONED
             - EMAIL_VERIFICATION
             - STEAM_TICKET
             - STEAM_OPENID
@@ -735,7 +736,8 @@ components:
             - X_OAUTH
         payload:
           oneOf:
-            - $ref: "#/components/schemas/AuthenticationRulePasskeyPayload"
+            - $ref: "#/components/schemas/AuthenticationRulePasskeyUsernamelessPayload"
+            - $ref: "#/components/schemas/AuthenticationRulePasskeyReasonedPayload"
             - $ref: "#/components/schemas/AuthenticationRuleEmailVerificationPayload"
             - $ref: "#/components/schemas/AuthenticationRuleSteamTicketPayload"
             - $ref: "#/components/schemas/AuthenticationRuleSteamOpenIdPayload"
@@ -751,19 +753,20 @@ components:
         refreshTokenTtlSeconds:
           type: integer
           description: Per-constraint override for refresh token lifetime. Resolved at realize time.
-    AuthenticationRulePasskeyPayload:
+    AuthenticationRulePasskeyUsernamelessPayload:
       type: object
       description: |
-        Passkey-method payload. `allowUsernameless` opts the application
-        in to discoverable-credential ("usernameless") passkey login,
-        where the user authenticates without first entering an email.
-        Absent or `false` keeps the email-first flow; only the entry
-        path is affected — realize authorization is still decided
-        entirely by Layer 2.
+        Empty payload — narrows to usernameless (discoverable-credential)
+        passkey login, the "Sign in with a passkey" entry shown before any
+        email is entered. Realize authorization is still decided by Layer 2.
       additionalProperties: false
-      properties:
-        allowUsernameless:
-          type: boolean
+    AuthenticationRulePasskeyReasonedPayload:
+      type: object
+      description: |
+        Empty payload — narrows to email-first ("reasoned") passkey login,
+        the passkey option offered after the user enters their email.
+        Realize authorization is still decided by Layer 2.
+      additionalProperties: false
     AuthenticationRuleEmailVerificationPayload:
       type: object
       description: Empty payload — email-verification constraints carry no further parameters.

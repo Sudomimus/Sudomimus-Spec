@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Native
-  version: 0.3.0
+  version: 1.0.0
   summary: Native client entry point for the Sudomimus authentication platform.
   description: |
     The Native API is the public gateway used by native clients
@@ -108,13 +108,27 @@ paths:
             - `AccountDisabled` — the resolved account is disabled.
             - `AccountDeleted` — the resolved account has been erased.
             - `ClaimConsentRequired` — the application requires a claim the
-              user has not granted through an interactive browser login;
-              direct-issue cannot prompt, so it can only consume a grant
-              established earlier.
+              user has not yet granted; direct-issue cannot prompt.
+            - `RequiredClaimDataMissing` — every required claim is granted,
+              but the account lacks the underlying data (e.g. no email on a
+              Steam-created account).
+
+            For the two claim-gate reasons the body additionally carries a
+            per-claim `claims` view (UNKNOWN distinguishes "never asked"
+            from DENIED "declined") and an `errand` handoff — a short-lived
+            browser URL where the user can authenticate, complete the
+            missing data, and grant consent. Open `errand.url` in the
+            system browser, poll `GET /errand/{errandKey}/status` (or wait
+            for the user), then retry this request once.
+
+            Repeated blocked calls reuse the live ticket: while it has at
+            least 15 minutes left and the owed task scope is unchanged, the
+            same `errandKey` (with its original `expiresAt`) is returned
+            again, so retries cannot split the handoff state.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/DirectIssueDeniedError"
         "404":
           description: Application anchor not found.
           content:
@@ -205,13 +219,27 @@ paths:
             - `AccountDisabled` — the resolved account is disabled.
             - `AccountDeleted` — the resolved account has been erased.
             - `ClaimConsentRequired` — the application requires a claim the
-              user has not granted through an interactive browser login;
-              direct-issue cannot prompt, so it can only consume a grant
-              established earlier.
+              user has not yet granted; direct-issue cannot prompt.
+            - `RequiredClaimDataMissing` — every required claim is granted,
+              but the account lacks the underlying data (e.g. no email on a
+              Steam-created account).
+
+            For the two claim-gate reasons the body additionally carries a
+            per-claim `claims` view (UNKNOWN distinguishes "never asked"
+            from DENIED "declined") and an `errand` handoff — a short-lived
+            browser URL where the user can authenticate, complete the
+            missing data, and grant consent. Open `errand.url` in the
+            system browser, poll `GET /errand/{errandKey}/status` (or wait
+            for the user), then retry this request once.
+
+            Repeated blocked calls reuse the live ticket: while it has at
+            least 15 minutes left and the owed task scope is unchanged, the
+            same `errandKey` (with its original `expiresAt`) is returned
+            again, so retries cannot split the handoff state.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/DirectIssueDeniedError"
         "404":
           description: Application anchor not found.
           content:
@@ -233,6 +261,47 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        default:
+          description: Error response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /errand/{errandKey}/status:
+    get:
+      operationId: errandStatus
+      summary: Poll the status of an errand handoff.
+      description: |
+        Lightweight polling endpoint for the errand handoff returned by a
+        claim-gate 403: bearer-by-key, no other authentication, a pure
+        single-row read with no side effects — unlike retrying direct-issue,
+        which is the full credential round-trip. Poll every ~2 seconds while
+        the user completes the browser side-trip, or skip polling and let
+        the user signal completion in your own UI.
+
+        An accidental direct-issue retry will not split your polling state:
+        while the current ticket has at least 15 minutes left and the task
+        scope is unchanged, the retry returns the SAME `errandKey`; a fresh
+        ticket is minted only near expiry or after a scope change.
+
+        Unknown, malformed, and expired keys are deliberately
+        indistinguishable: all report `EXPIRED`, so the endpoint cannot be
+        used to probe key validity. `COMPLETED` means every task finished —
+        retry the direct-issue request once to obtain tokens.
+      parameters:
+        - name: errandKey
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The `errand.errandKey` value from the 403 body.
+      responses:
+        "200":
+          description: Current errand status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrandStatusResponse"
         default:
           description: Error response.
           content:
@@ -281,7 +350,10 @@ components:
         - applicationAnchor
         - accessToken
         - refreshToken
+        - claims
       properties:
+        claims:
+          $ref: "#/components/schemas/ClaimsStateView"
         applicationAnchor:
           type: string
         accessToken:
@@ -327,7 +399,10 @@ components:
         - applicationAnchor
         - accessToken
         - refreshToken
+        - claims
       properties:
+        claims:
+          $ref: "#/components/schemas/ClaimsStateView"
         applicationAnchor:
           type: string
         accessToken:
@@ -341,6 +416,90 @@ components:
         refreshToken:
           type: string
           description: Long-lived refresh token (JWT). Use Connect's `/refresh` to obtain a new access token without re-acquiring a Steam ticket.
+    ClaimRequirementStateView:
+      type: object
+      description: |
+        One shareable claim: what the application requests (`requirement`)
+        joined with the user's standing decision (`state`). `UNKNOWN` means
+        the user was never asked; `DENIED` means the user explicitly
+        declined.
+      required:
+        - requirement
+        - state
+      properties:
+        requirement:
+          type: string
+          enum: [OFF, OPTIONAL, REQUIRED]
+        state:
+          type: string
+          enum: [UNKNOWN, GRANTED, DENIED]
+    ClaimsStateView:
+      type: object
+      description: |
+        Per-claim view across the three shareable claims, carried on both
+        the 200 (why is a claim absent from the minted token) and the
+        claim-gate 403 (what is still owed).
+      required:
+        - email
+        - firstName
+        - lastName
+      properties:
+        email:
+          $ref: "#/components/schemas/ClaimRequirementStateView"
+        firstName:
+          $ref: "#/components/schemas/ClaimRequirementStateView"
+        lastName:
+          $ref: "#/components/schemas/ClaimRequirementStateView"
+    ErrandHandoff:
+      type: object
+      description: |
+        The browser side-trip that unblocks a claim-gated direct-issue:
+        a short-lived (30 minutes), single-use bearer URL where the user
+        authenticates (when account data is being written), completes any
+        missing data, and grants consent. The stored task list is server-
+        side only — open the URL and let the page drive. Repeated blocked
+        calls re-hand the same live handoff (same `errandKey`, original
+        `expiresAt`) while it has at least 15 minutes left and the owed
+        task scope is unchanged.
+      required:
+        - errandKey
+        - url
+        - expiresAt
+      properties:
+        errandKey:
+          type: string
+          description: Bearer key (`ernd_…`); also the status-poll path key.
+        url:
+          type: string
+          format: uri
+          description: Open this in the user's system browser.
+        expiresAt:
+          type: string
+          format: date-time
+    DirectIssueDeniedError:
+      type: object
+      description: |
+        403 body. For the claim-gate reasons (`ClaimConsentRequired`,
+        `RequiredClaimDataMissing`) the `claims` view and the `errand`
+        handoff are present; for every other reason only `reason` is set.
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          description: Stable machine-readable reason code.
+        claims:
+          $ref: "#/components/schemas/ClaimsStateView"
+        errand:
+          $ref: "#/components/schemas/ErrandHandoff"
+    ErrandStatusResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [PENDING, COMPLETED, EXPIRED]
     Error:
       type: object
       description: |

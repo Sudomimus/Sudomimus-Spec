@@ -6,7 +6,7 @@ Sudomimus APIs. One file per public service.
 | File | Service | Purpose |
 | --- | --- | --- |
 | [`connect.yaml`](connect.yaml) | `connect` | Token exchange + session revocation (Establish / StatusPoll / Redeem / Refresh / Info / Introspect / Logout / RevokeAll) |
-| [`native.yaml`](native.yaml) | `native` | Direct-issue (Steam ticket / access key) |
+| [`native.yaml`](native.yaml) | `native` | Direct-issue (Steam ticket / access key) + errand status polling (`GET /errand/{errandKey}/status`) |
 
 ## Source of truth
 

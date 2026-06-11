@@ -429,7 +429,12 @@ components:
       properties:
         requirement:
           type: string
-          enum: [OFF, OPTIONAL, REQUIRED]
+          description: |
+            The developer's policy for the claim. `SYNTHETIC` guarantees the
+            claim is present but permits a generated placeholder (a stand-in
+            name, a proxy email) when the user has not shared real data —
+            unlike `REQUIRED` it never blocks issuance or raises an errand.
+          enum: [OFF, OPTIONAL, REQUIRED, SYNTHETIC]
         state:
           type: string
           enum: [UNKNOWN, GRANTED, DENIED]

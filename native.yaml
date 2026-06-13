@@ -267,6 +267,63 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /errand:
+    post:
+      operationId: createErrand
+      summary: Proactively mint an errand for a user you already authenticated.
+      description: |
+        Ask, on the application's own behalf, for an errand side-trip so the
+        user can manage what they share — the on-demand counterpart to the
+        claim-gate 403. Use it when direct-issue would succeed but you want to
+        invite the user to grant OPTIONAL claims that native issuance can never
+        prompt for, or to let a Steam-only user add an email they choose to
+        share.
+
+        Authenticated by an access token you already hold for the user (from an
+        earlier direct-issue or Connect redeem). It is verified and its expiry is
+        enforced, then reverse-resolved to the account — so present a fresh one.
+        The access token only identifies the user; it never authorizes the
+        sharing. Every minted ticket therefore forces an in-browser
+        re-authentication before any task runs, so a leaked token cannot alter a
+        user's grants.
+
+        When the account already satisfies the application's claim policy the
+        response carries `errand: null` — nothing to do, just direct-issue.
+        Otherwise open `errand.url` and poll `/errand/{errandKey}/status`
+        exactly as for the 403 handoff.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateErrandRequest"
+      responses:
+        "200":
+          description: |
+            Either the errand handoff to open, or `errand: null` when nothing is
+            owed. `claims` always reports the per-claim state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateErrandResponse"
+        "401":
+          description: The access token is missing, malformed, expired, or no longer resolves to an account.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: The application or the account is disabled.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /errand/{errandKey}/status:
     get:
       operationId: errandStatus
@@ -497,6 +554,34 @@ components:
           $ref: "#/components/schemas/ClaimsStateView"
         errand:
           $ref: "#/components/schemas/ErrandHandoff"
+    CreateErrandRequest:
+      type: object
+      required:
+        - accessToken
+      properties:
+        accessToken:
+          type: string
+          description: |
+            An access token (JWT) the application already holds for the user.
+            Verified server-side with its expiry enforced, then reverse-resolved
+            from its `subject` (sector subject) claim to the account — so present
+            a currently-valid token, not an expired one.
+    CreateErrandResponse:
+      type: object
+      required:
+        - errand
+        - claims
+      properties:
+        errand:
+          description: |
+            The browser side-trip to open, or `null` when the account already
+            satisfies the application's claim policy (nothing to consent to or
+            complete) — in that case just direct-issue.
+          oneOf:
+            - $ref: "#/components/schemas/ErrandHandoff"
+            - type: "null"
+        claims:
+          $ref: "#/components/schemas/ClaimsStateView"
     ErrandStatusResponse:
       type: object
       required:

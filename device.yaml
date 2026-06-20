@@ -1,0 +1,340 @@
+openapi: 3.1.0
+info:
+  title: Sudomimus Device
+  version: 1.0.0
+  summary: Device authorization API for public clients.
+  description: |
+    The Device API is the public entry point for generic device-code
+    authorization. CLIs, launchers, and other public clients ask for a
+    `deviceCode` / `userCode` pair, send the user to the browser-based
+    Sudomimus approval page, then poll until the approved session can be
+    exchanged for ordinary Sudomimus application tokens.
+
+    This API is deliberately separate from Connect and Native:
+
+    - Connect `/establish` is signed by a confidential application client.
+    - Native direct-issue verifies a platform credential such as a Steam ticket
+      or access key.
+    - Device authorization has no client secret. The application opts in with a
+      Layer 3 `DEVICE_CODE` ReturnRule, and the user approves the displayed code
+      in the browser.
+
+    After a successful `/device-token` exchange, the returned refresh token is a
+    normal Sudomimus application refresh token. Use the Connect API for later
+    `/refresh`, `/logout`, `/introspect`, and `/revoke-all` operations.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: https://device-api.sudomimus.com
+    description: Production
+# No HTTP-level auth: device authorization is for public clients. The
+# application opt-in gate is the stored Layer 3 DEVICE_CODE ReturnRule, and the
+# polling credential is the high-entropy deviceCode returned by
+# /device-authorize.
+security: []
+paths:
+  /health:
+    get:
+      operationId: health
+      summary: Liveness probe for the Device service.
+      responses:
+        "200":
+          description: Service is ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /device-authorize:
+    post:
+      operationId: deviceAuthorize
+      summary: Start a device authorization session.
+      description: |
+        Creates a short-lived device authorization session for the application
+        identified by `applicationAnchor`.
+
+        No client-auth JWT is required or accepted here. The application must
+        already have an enabled Layer 3 `DEVICE_CODE` ReturnRule. The caller
+        keeps `deviceCode` private and polls `/device-token`; the user sees
+        `userCode` and approves the request at `verificationUri` or
+        `verificationUriComplete`.
+
+        The client should wait at least `interval` seconds between
+        `/device-token` polls. Polling faster can return `slow_down` with a
+        larger interval.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceAuthorizeRequest"
+      responses:
+        "200":
+          description: Device authorization session created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceAuthorizeResponse"
+        "400":
+          description: Malformed request body.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: |
+            The application cannot start device authorization. The `reason`
+            distinguishes:
+
+            - `ApplicationDisabled` - the application has been disabled.
+            - `Layer3Denied` - the application does not currently have an
+              enabled `DEVICE_CODE` ReturnRule.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Application anchor not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /device-token:
+    post:
+      operationId: deviceToken
+      summary: Poll and consume a device authorization session.
+      description: |
+        Polls the session identified by `deviceCode`. Pending and terminal
+        refusal states are serialized as OAuth-style device-flow errors, not
+        Sudomimus `{ "reason": "..." }` wire reasons.
+
+        A successful response consumes the device authorization session and
+        returns a normal Sudomimus application access/refresh token pair.
+        Repeating the same request after success cannot mint another pair.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceTokenRequest"
+      responses:
+        "200":
+          description: Tokens issued and the device authorization session consumed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceTokenResponse"
+        "400":
+          description: |
+            Device-flow polling state or terminal client-visible refusal:
+
+            - `authorization_pending` - the user has not approved or denied the
+              request yet. Continue polling after the current interval.
+            - `slow_down` - the client is polling too quickly. Use the returned
+              `interval` value for subsequent polls.
+            - `access_denied` - the user denied the request, approval failed, or
+              policy no longer allows token issuance.
+            - `expired_token` - the device authorization session expired.
+            - `invalid_request` - the `deviceCode` is unknown or has already
+              been consumed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceTokenError"
+        "500":
+          description: |
+            Token issuance failed after approval. The device authorization
+            session is failed server-side and the client should stop polling.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceTokenError"
+        default:
+          description: Error response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - ready
+        - service
+        - version
+      properties:
+        ready:
+          type: boolean
+        service:
+          type: string
+        version:
+          type: string
+    ApplicationAnchor:
+      type: string
+      minLength: 3
+      maxLength: 64
+      pattern: "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+      description: |
+        Public anchor identifying the application. Strict kebab-case, unique at
+        application creation, and immutable after creation.
+    DeviceCode:
+      type: string
+      pattern: "^dvc_[0-9a-f]{64}$"
+      description: |
+        High-entropy bearer secret for `/device-token`, returned only to the
+        initiating client. Keep it private; do not display it to the browser
+        user.
+    UserCode:
+      type: string
+      pattern: "^[0-9ABCDEFGHJKMNPQRSTVWXYZ]{4}-[0-9ABCDEFGHJKMNPQRSTVWXYZ]{4}$"
+      description: |
+        Short human-facing code shown by the client and confirmed in the
+        browser. Uses the Crockford-style alphabet without ambiguous letters.
+    DeviceAuthorizeRequest:
+      type: object
+      required:
+        - applicationAnchor
+      additionalProperties: false
+      properties:
+        applicationAnchor:
+          $ref: "#/components/schemas/ApplicationAnchor"
+    DeviceAuthorizeResponse:
+      type: object
+      required:
+        - applicationAnchor
+        - deviceCode
+        - userCode
+        - verificationUri
+        - verificationUriComplete
+        - expiresIn
+        - interval
+      properties:
+        applicationAnchor:
+          $ref: "#/components/schemas/ApplicationAnchor"
+        deviceCode:
+          $ref: "#/components/schemas/DeviceCode"
+        userCode:
+          $ref: "#/components/schemas/UserCode"
+        verificationUri:
+          type: string
+          format: uri
+          description: Browser page where the user enters or confirms `userCode`.
+        verificationUriComplete:
+          type: string
+          format: uri
+          description: Browser URL pre-filled with `userCode`.
+        expiresIn:
+          type: integer
+          minimum: 1
+          description: Session lifetime in seconds. Default production value is 600.
+        interval:
+          type: integer
+          minimum: 1
+          description: Minimum polling interval in seconds. Default production value is 5.
+    DeviceTokenRequest:
+      type: object
+      required:
+        - deviceCode
+      additionalProperties: false
+      properties:
+        deviceCode:
+          $ref: "#/components/schemas/DeviceCode"
+    DeviceTokenResponse:
+      type: object
+      required:
+        - applicationAnchor
+        - accessToken
+        - refreshToken
+        - claims
+      properties:
+        applicationAnchor:
+          $ref: "#/components/schemas/ApplicationAnchor"
+        accessToken:
+          type: string
+          description: |
+            Short-lived access token (JWT). The application-visible user key is
+            the `subject` (sector subject) claim. Claim fields such as
+            `emailAddress`, `firstName`, and `lastName` are minted according to
+            the application's claim policy and the user's standing grant.
+        refreshToken:
+          type: string
+          description: |
+            Long-lived refresh token (JWT). Use Connect `/refresh` to rotate it
+            and issue later access tokens.
+        claims:
+          $ref: "#/components/schemas/ClaimsStateView"
+    DeviceTokenError:
+      type: object
+      description: |
+        OAuth-style device-flow error body returned by `/device-token`.
+        Polling clients should branch on `error`, not on Sudomimus wire
+        `reason` symbols.
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          enum:
+            - authorization_pending
+            - slow_down
+            - access_denied
+            - expired_token
+            - invalid_request
+            - server_error
+        interval:
+          type: integer
+          minimum: 1
+          description: Present for `slow_down`; use this value for subsequent polls.
+    ClaimRequirementStateView:
+      type: object
+      description: |
+        One shareable claim: what the application requests (`requirement`)
+        joined with the user's standing decision (`state`). `UNKNOWN` means the
+        user was never asked; `DENIED` means the user explicitly declined.
+      required:
+        - requirement
+        - state
+      properties:
+        requirement:
+          type: string
+          description: |
+            The developer's policy for the claim. `SYNTHETIC` guarantees the
+            claim is present but permits a generated placeholder when the user
+            has not shared real data.
+          enum: [OFF, OPTIONAL, REQUIRED, SYNTHETIC]
+        state:
+          type: string
+          enum: [UNKNOWN, GRANTED, DENIED]
+    ClaimsStateView:
+      type: object
+      description: |
+        Per-claim view across the three shareable claims - why a claim is or is
+        not present in the minted token.
+      required:
+        - email
+        - firstName
+        - lastName
+      properties:
+        email:
+          $ref: "#/components/schemas/ClaimRequirementStateView"
+        firstName:
+          $ref: "#/components/schemas/ClaimRequirementStateView"
+        lastName:
+          $ref: "#/components/schemas/ClaimRequirementStateView"
+    Error:
+      type: object
+      description: |
+        Error response body for non-polling validation and infrastructure
+        failures. `/device-token` handler-level polling states use
+        `DeviceTokenError` instead.
+      properties:
+        reason:
+          type: string
+          description: Stable machine-readable reason code.

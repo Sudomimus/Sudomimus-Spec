@@ -7,6 +7,7 @@ Sudomimus APIs. One file per public service.
 | --- | --- | --- |
 | [`connect.yaml`](connect.yaml) | `connect` | Token exchange + session revocation (Establish / StatusPoll / Redeem / Refresh / Info / Introspect / Logout / RevokeAll) |
 | [`native.yaml`](native.yaml) | `native` | Direct-issue (Steam ticket / access key) + errand status polling (`GET /errand/{errandKey}/status`) |
+| [`device.yaml`](device.yaml) | `device-api` | Device authorization for public clients (`POST /device-authorize` / `POST /device-token`) |
 
 ## Source of truth
 
@@ -37,6 +38,10 @@ typed request / response / error models from its corresponding spec:
 - `sdks/python/packages/sudomimus-connect` ← `specs/connect.yaml`
 - `sdks/python/packages/sudomimus-native`  ← `specs/native.yaml`
 
-When you edit a spec file, regenerate the consumers in the consuming repo in the
-same change. CI in this repository lints the specs; CI in the consuming repos
-runs the generators and fails on any uncommitted drift.
+The Device API spec is published for the public HTTP contract and Starlight
+reference. Add the corresponding SDK package rows here when the TypeScript /
+Python device clients are introduced in `sudomimus/sudomimus`.
+
+When you edit a spec file that has SDK consumers, regenerate those consumers in
+the consuming repo in the same change. CI in this repository lints the specs; CI
+in the consuming repos runs the generators and fails on any uncommitted drift.

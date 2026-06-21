@@ -20,7 +20,7 @@ info:
       in the browser.
 
     After a successful `/device-token` exchange, the returned refresh token is a
-    normal Sudomimus application refresh token. Use the Connect API for later
+    normal Sudomimus application refresh token. Use the Session API for later
     `/refresh`, `/logout`, `/introspect`, and `/revoke-all` operations.
   license:
     name: MIT
@@ -266,7 +266,7 @@ components:
         refreshToken:
           type: string
           description: |
-            Long-lived refresh token (JWT). Use Connect `/refresh` to rotate it
+            Long-lived refresh token (JWT). Use Session API `/refresh` to rotate it
             and issue later access tokens.
         claims:
           $ref: "#/components/schemas/ClaimsStateView"

@@ -5,7 +5,8 @@ Sudomimus APIs. One file per public service.
 
 | File | Service | Purpose |
 | --- | --- | --- |
-| [`connect.yaml`](connect.yaml) | `connect` | Token exchange + session revocation (Establish / StatusPoll / Redeem / Refresh / Info / Introspect / Logout / RevokeAll) |
+| [`connect.yaml`](connect.yaml) | `connect` | Inquiry lifecycle (Establish / StatusPoll / Redeem / Info) |
+| [`session.yaml`](session.yaml) | `session-api` | Ordinary application session lifecycle (Refresh / Introspect / Logout / RevokeAll) |
 | [`native.yaml`](native.yaml) | `native` | Direct-issue (Steam ticket / access key) + errand status polling (`GET /errand/{errandKey}/status`) |
 | [`device.yaml`](device.yaml) | `device-api` | Device authorization for public clients (`POST /device-authorize` / `POST /device-token`) |
 
@@ -30,8 +31,10 @@ Generated SDKs and public reference docs consume these contracts. Current SDK
 package mappings:
 
 - `sdks/typescript/packages/connect` ← `specs/connect.yaml`
+- `sdks/typescript/packages/session` ← `specs/session.yaml`
 - `sdks/typescript/packages/native`  ← `specs/native.yaml`
 - `sdks/python/packages/sudomimus-connect` ← `specs/connect.yaml`
+- `sdks/python/packages/sudomimus-session` ← `specs/session.yaml`
 - `sdks/python/packages/sudomimus-native`  ← `specs/native.yaml`
 
 The Device API spec is published for the public HTTP contract and reference

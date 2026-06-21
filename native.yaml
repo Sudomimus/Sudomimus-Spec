@@ -422,7 +422,7 @@ components:
             consent-gated and may be absent (see Connect `AccessTokenBody`).
         refreshToken:
           type: string
-          description: Long-lived refresh token (JWT). Use Connect's `/refresh` for renewal without re-presenting the access key.
+          description: Long-lived refresh token (JWT). Use Session API `/refresh` for renewal without re-presenting the access key.
     DirectIssueSteamTicketRequest:
       type: object
       required:
@@ -471,7 +471,7 @@ components:
             consent-gated and may be absent (see Connect `AccessTokenBody`).
         refreshToken:
           type: string
-          description: Long-lived refresh token (JWT). Use Connect's `/refresh` to obtain a new access token without re-acquiring a Steam ticket.
+          description: Long-lived refresh token (JWT). Use Session API `/refresh` to obtain a new access token without re-acquiring a Steam ticket.
     ClaimRequirementStateView:
       type: object
       description: |

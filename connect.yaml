@@ -6,10 +6,8 @@ info:
   description: |
     The Connect API is the public entry point for integrating applications.
     Clients use it to establish an authentication inquiry, poll its status,
-    redeem the realized inquiry for application tokens, refresh access
-    tokens, and fetch localized application metadata. Applications can also
-    introspect whether a session is still valid and revoke sessions — a single
-    session via /logout, or every session of an account via /revoke-all.
+    redeem the realized inquiry for application tokens, and fetch localized
+    application metadata.
   license:
     name: MIT
     identifier: MIT
@@ -165,86 +163,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  /refresh:
-    post:
-      operationId: refresh
-      summary: Rotate a refresh token and issue a new access token.
-      description: |
-        Issues a new access token AND a new refresh token, atomically
-        invalidating the presented refresh token. The Connect service
-        implements OAuth 2.1 BCP §4.14.2 strict refresh-token rotation:
-        every successful `/refresh` rotates the refresh token, and any
-        subsequent presentation of the parent token (the one just
-        consumed) is treated as evidence of compromise.
-
-        On compromise, the entire refresh-token family that the replayed
-        token belongs to is revoked in a single sweep and the caller must
-        re-authenticate via the normal Connect inquiry flow
-        (`/establish` → `/status-poll` → `/redeem`). The same outcome
-        applies when a concurrent rotation race is lost — per BCP §4.14.2
-        a perfectly-timed retry is indistinguishable from an attacker
-        racing the legitimate caller, so both paths count as compromise.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RefreshRequest"
-      responses:
-        "200":
-          description: New access token and rotated refresh token issued.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RefreshResponse"
-        "400":
-          description: |
-            Reason `AccountNotFound` — the account behind the refresh token
-            could not be resolved.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "401":
-          description: |
-            Refresh token rejected. The `reason` distinguishes:
-
-            - `RefreshTokenNotFound` — token cannot be resolved (unknown
-              `jti`, wrong signature, or otherwise invalid).
-            - `RefreshTokenSuspended` — the refresh-token session is
-              suspended.
-            - `RefreshTokenExpired` — the token is past its `exp`.
-            - `RefreshTokenFamilyCompromised` — the presented token had
-              already been rotated; the whole family has now been
-              revoked.
-            - `RefreshTokenRotationRaceLost` — a concurrent rotation won
-              the conditional write. Per OAuth 2.1 BCP §4.14.2 this is
-              also treated as compromise and the family is revoked.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "403":
-          description: |
-            The attempt was refused. The `reason` distinguishes:
-
-            - `AccountDisabled` — the account behind the refresh token is
-              disabled.
-            - `AccountDeleted` — the account has been erased.
-            - `ClaimConsentRequired` — a REQUIRED claim is no longer
-              satisfied by a standing grant (e.g. the user revoked it); the
-              grant must be re-established through an interactive browser
-              login.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        default:
-          description: Error response.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
   /info:
     post:
       operationId: info
@@ -262,115 +180,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/InfoResponse"
-        default:
-          description: Error response.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-  /introspect:
-    post:
-      operationId: introspect
-      summary: Check whether the session behind an access token is still valid.
-      description: |
-        Returns the revocation status of the refresh token (session) that the
-        supplied access token descends from. Intended for strict applications
-        that want near-real-time revocation: validate the access token offline
-        as usual, then call this endpoint — caching the result for at least
-        `recommendedRecheckSeconds` — to decide whether to keep trusting it.
-
-        The access token is self-authenticating: its signature is verified
-        against the issuing application's public key, so no client-auth JWT is
-        required. The access token's own expiry is NOT enforced here; the answer
-        describes the underlying session, not the access token's freshness.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/IntrospectRequest"
-      responses:
-        "200":
-          description: Status of the session behind the access token.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/IntrospectResponse"
-        "401":
-          description: Access token missing, malformed, or with an invalid signature.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        default:
-          description: Error response.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-  /logout:
-    post:
-      operationId: logout
-      summary: Revoke the session behind a refresh token.
-      description: |
-        Revokes the single session identified by the supplied refresh token
-        (RFC 7009 style). Possession of a genuine refresh token authorizes the
-        revocation, so no client-auth JWT is required.
-
-        The operation is idempotent: a token that is already revoked or expired
-        reports `revoked: true`, and a token that cannot be resolved reports
-        `revoked: false` without revealing whether it ever existed.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/LogoutRequest"
-      responses:
-        "200":
-          description: Revocation outcome.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LogoutResponse"
-        default:
-          description: Error response.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-  /revoke-all:
-    post:
-      operationId: revokeAll
-      summary: Revoke every session of an account for the calling application.
-      description: |
-        Revokes all refresh tokens belonging to the given account that were
-        issued for the calling application (log out everywhere). This is an
-        application-authority action — not something a single session capability
-        can authorize — so it requires a client-auth JWT, exactly like
-        /establish. Revocation is scoped to the calling application; sessions of
-        the same account under other applications are unaffected.
-      security:
-        - SudomimusClientJWT: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RevokeAllRequest"
-      responses:
-        "200":
-          description: Number of sessions revoked.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RevokeAllResponse"
-        "401":
-          description: Client-auth JWT missing, malformed, expired, or invalid.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
         default:
           description: Error response.
           content:

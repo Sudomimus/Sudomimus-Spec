@@ -9,14 +9,12 @@ Sudomimus APIs. One file per public service.
 | [`native.yaml`](native.yaml) | `native` | Direct-issue (Steam ticket / access key) + errand status polling (`GET /errand/{errandKey}/status`) |
 | [`device.yaml`](device.yaml) | `device-api` | Device authorization for public clients (`POST /device-authorize` / `POST /device-token`) |
 
-## Source of truth
+## Public Contract
 
-These specs are **hand-maintained here** and describe the surface that the
-open-source SDKs are guaranteed to support. The platform's internal
-implementation lives in the private `sudomimus/sudomimus-core-monorepo` and is
-**not** automatically synchronized with these files. When a spec change
-requires a corresponding implementation change (or vice versa), link the
-related core-monorepo PR in your description.
+These specs define the public API surface that Sudomimus SDKs and integrating
+applications can rely on. Keep descriptions focused on externally observable
+behavior: endpoints, authentication requirements, request / response schemas,
+error reasons, and compatibility notes.
 
 ## Versioning
 
@@ -28,20 +26,14 @@ Spec changes follow SemVer on the `info.version` field of each document:
 
 ## Consumed by
 
-This repository is consumed as a git submodule by both
-`sudomimus/sudomimus` and `sudomimus/sudomimus-core-monorepo`, mounted at
-`specs/` in each. In the `sudomimus` SDK repo, each package generates strongly
-typed request / response / error models from its corresponding spec:
+Generated SDKs and public reference docs consume these contracts. Current SDK
+package mappings:
 
 - `sdks/typescript/packages/connect` ← `specs/connect.yaml`
 - `sdks/typescript/packages/native`  ← `specs/native.yaml`
 - `sdks/python/packages/sudomimus-connect` ← `specs/connect.yaml`
 - `sdks/python/packages/sudomimus-native`  ← `specs/native.yaml`
 
-The Device API spec is published for the public HTTP contract and Starlight
-reference. Add the corresponding SDK package rows here when the TypeScript /
-Python device clients are introduced in `sudomimus/sudomimus`.
-
-When you edit a spec file that has SDK consumers, regenerate those consumers in
-the consuming repo in the same change. CI in this repository lints the specs; CI
-in the consuming repos runs the generators and fails on any uncommitted drift.
+The Device API spec is published for the public HTTP contract and reference
+documentation. Add the corresponding SDK package rows here when generated Device
+clients are introduced.

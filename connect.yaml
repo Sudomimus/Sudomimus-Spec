@@ -73,7 +73,7 @@ paths:
                 $ref: "#/components/schemas/Error"
         "403":
           description: |
-            Application has been disabled via the admin kill switch.
+            Application is disabled.
             Reason `ApplicationDisabled`.
           content:
             application/json:
@@ -148,8 +148,7 @@ paths:
           description: |
             The attempt was refused. The `reason` distinguishes:
 
-            - `ApplicationDisabled` — the application has been disabled
-              via the admin kill switch.
+            - `ApplicationDisabled` — the application is disabled.
             - `AccountDisabled` — the realizing account is disabled.
             - `AccountDeleted` — the realizing account has been erased.
             - `ClaimConsentRequired` — the application requires a claim
@@ -212,7 +211,7 @@ paths:
 
             - `RefreshTokenNotFound` — token cannot be resolved (unknown
               `jti`, wrong signature, or otherwise invalid).
-            - `RefreshTokenSuspended` — the row is administratively
+            - `RefreshTokenSuspended` — the refresh-token session is
               suspended.
             - `RefreshTokenExpired` — the token is past its `exp`.
             - `RefreshTokenFamilyCompromised` — the presented token had
@@ -575,7 +574,7 @@ components:
             Long-lived refresh token (JWT). Decode its body to
             `RefreshTokenBody` (see schema). The refresh token leaves the
             system, so its body carries the sector `subject`, never the
-            internal account identifier.
+            underlying account identifier.
         accessToken:
           type: string
           description: |
@@ -632,8 +631,8 @@ components:
           description: |
             The application-visible user identifier — the per-(account,
             sector) **sector subject**, also the OIDC `sub`. This is the
-            value an application keys its users on; the raw internal
-            account identifier never appears in a token. User-rotatable.
+            value an application keys its users on; the underlying account
+            identifier never appears in a token. User-rotatable.
             Opaque: never parse or format-validate it.
         firstName:
           type: string
@@ -665,7 +664,7 @@ components:
         Decoded body (payload) of a Sudomimus refresh token. Carries the
         sector `subject` (the same pairwise identifier as the access-token
         body) because the refresh token leaves the system and must never
-        expose the internal account identifier. Informational only —
+        expose the underlying account identifier. Informational only —
         `/refresh` resolves the token by its `jti`, not by reading the body.
       required:
         - subject

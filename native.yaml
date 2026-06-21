@@ -7,8 +7,8 @@ info:
     The Native API is the public gateway used by native clients
     (desktop applications, games, headless processes) that authenticate
     users directly through a platform identity provider — currently Steam
-    via the Steamworks SDK, or a long-lived access-key credential issued
-    in the admin console.
+    via the Steamworks SDK, or a long-lived access-key credential bound
+    to an application and account.
 
     The native flow is "direct-issue": the client passes a platform-issued
     proof (Steam ticket) or a stored credential (access key) to the Native
@@ -42,9 +42,10 @@ paths:
       summary: Exchange an access-key credential for application tokens.
       description: |
         Trade a long-lived access-key credential (identifier + secret) for
-        application access and refresh tokens. Access keys are issued in
-        the admin console against a specific account; the credential
-        carries optional TTL bounds and an opt-in expiry timestamp.
+        application access and refresh tokens. Access keys are
+        application-scoped credentials bound to a specific account; the
+        credential carries optional TTL bounds and an opt-in expiry
+        timestamp.
 
         The server:
 
@@ -103,8 +104,7 @@ paths:
             - `Layer1Denied`, `Layer2Denied`, `Layer3Denied` — the
               application's three-layer rules rejected this attempt
               (which layer is indicated by the reason code).
-            - `ApplicationDisabled` — the application has been disabled
-              via the admin kill switch.
+            - `ApplicationDisabled` — the application is disabled.
             - `AccountDisabled` — the resolved account is disabled.
             - `AccountDeleted` — the resolved account has been erased.
             - `ClaimConsentRequired` — the application requires a claim the
@@ -137,8 +137,8 @@ paths:
                 $ref: "#/components/schemas/Error"
         "500":
           description: |
-            The access key's account record is missing — an internal
-            state inconsistency. Reason `AccessKeyCredentialAccountMissing`.
+            Server error while resolving the credential's account. Reason
+            `AccessKeyCredentialAccountMissing`.
           content:
             application/json:
               schema:
@@ -214,8 +214,7 @@ paths:
             - `Layer1Denied`, `Layer2Denied`, `Layer3Denied` — the
               application's three-layer rules rejected this attempt
               (which layer is indicated by the reason code).
-            - `ApplicationDisabled` — the application has been disabled
-              via the admin kill switch.
+            - `ApplicationDisabled` — the application is disabled.
             - `AccountDisabled` — the resolved account is disabled.
             - `AccountDeleted` — the resolved account has been erased.
             - `ClaimConsentRequired` — the application requires a claim the

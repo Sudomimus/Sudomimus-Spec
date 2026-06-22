@@ -390,35 +390,6 @@ components:
             Short-lived access token (JWT). Decode its body to
             `AccessTokenBody` (see schema) — the application-visible user
             key is the `subject` (sector subject) claim.
-    RefreshRequest:
-      type: object
-      required:
-        - refreshToken
-      properties:
-        refreshToken:
-          type: string
-    RefreshResponse:
-      type: object
-      required:
-        - accessToken
-        - refreshToken
-        - claims
-      properties:
-        claims:
-          $ref: "#/components/schemas/ClaimsStateView"
-        accessToken:
-          type: string
-          description: |
-            Short-lived access token (JWT). Decode its body to
-            `AccessTokenBody` (see schema) — the application-visible user
-            key is the `subject` (sector subject) claim.
-        refreshToken:
-          type: string
-          description: |
-            Newly issued refresh token (JWT); body is `RefreshTokenBody`.
-            The presented refresh token is invalidated atomically as part
-            of the same call; re-presenting it is treated as compromise
-            under OAuth 2.1 BCP §4.14.2 strict rotation.
     AccessTokenBody:
       type: object
       description: |
@@ -509,70 +480,6 @@ components:
         applicationPublicKey:
           type: string
           description: PEM-encoded application public key used to verify issued JWTs.
-    IntrospectRequest:
-      type: object
-      required:
-        - accessToken
-      properties:
-        accessToken:
-          type: string
-          description: A Sudomimus-issued access token (JWT). Its signature is verified; its own expiry is not enforced.
-    IntrospectResponse:
-      type: object
-      required:
-        - status
-        - recommendedRecheckSeconds
-      properties:
-        status:
-          type: string
-          description: |
-            Revocation state of the session behind the access token. `not_found`
-            covers an unknown session or one belonging to a different application.
-          enum:
-            - active
-            - revoked
-            - expired
-            - not_found
-        recommendedRecheckSeconds:
-          type: integer
-          description: Suggested minimum number of seconds to cache this result before re-checking.
-    LogoutRequest:
-      type: object
-      required:
-        - refreshToken
-      properties:
-        refreshToken:
-          type: string
-          description: The refresh token (JWT) whose session should be revoked.
-    LogoutResponse:
-      type: object
-      required:
-        - revoked
-      properties:
-        revoked:
-          type: boolean
-          description: True if the session is now revoked, including sessions that were already revoked or expired.
-    RevokeAllRequest:
-      type: object
-      required:
-        - subject
-      properties:
-        subject:
-          type: string
-          description: >-
-            The sector subject the application sees for the user (the access /
-            id token `sub`). Reverse-mapped server-side to the underlying
-            account, whose sessions are then revoked for the calling
-            application. A subject the application has never been issued (or one
-            from another sector) revokes nothing.
-    RevokeAllResponse:
-      type: object
-      required:
-        - revokedCount
-      properties:
-        revokedCount:
-          type: integer
-          description: Number of refresh tokens that were revoked.
     AuthenticationRuleConstraint:
       type: object
       required:

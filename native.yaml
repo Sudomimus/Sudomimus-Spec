@@ -174,9 +174,9 @@ paths:
           5. Issues access + refresh JWTs signed with the application's
              private key.
 
-        Tokens follow the same shape as those issued through Connect's
-        `/redeem`. Verification is the responsibility of the relying party
-        (see the `Sudomimus.Token` SDK).
+        Tokens follow the same shape as those issued through other ordinary
+        application-token issuance paths. Verification is the responsibility
+        of the relying party (see the `Sudomimus.Token` SDK).
 
         The Layer-1 method name on the wire is `STEAM_TICKET`, but the
         resolved identity is stored as a `STEAM_ID64` Authentication row

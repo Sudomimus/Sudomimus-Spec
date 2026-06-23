@@ -37,12 +37,16 @@ paths:
         invalidating the presented refresh token. The Session API implements
         OAuth 2.1 BCP §4.14.2 strict refresh-token rotation: every successful
         `/refresh` rotates the refresh token, and a later presentation of the
-        parent token is treated as evidence of compromise.
+        parent token is treated as evidence of compromise unless it is a
+        near-simultaneous retry inside the rotation grace window.
 
-        On compromise, the entire refresh-token family is revoked and the
-        caller must restart with its initial login flow: Connect inquiry,
-        device authorization, native direct-issue, or another ordinary
-        application-token issuance path.
+        Inside that short grace window, if the parent was already rotated and
+        the winning child is still active, the retry adopts the same child and
+        receives HTTP 200 instead of revoking the family. Outside the grace
+        window, or when adoption cannot cleanly rebuild the child session, the
+        entire refresh-token family is revoked and the caller must restart with
+        its initial login flow: Connect inquiry, device authorization, native
+        direct-issue, or another ordinary application-token issuance path.
       requestBody:
         required: true
         content:
@@ -51,7 +55,10 @@ paths:
               $ref: "#/components/schemas/RefreshRequest"
       responses:
         "200":
-          description: New access token and rotated refresh token issued.
+          description: |
+            New access token and rotated refresh token issued. A benign
+            concurrent retry may also receive 200 by adopting the live child
+            created by the winning refresh inside the rotation grace window.
           content:
             application/json:
               schema:
@@ -69,8 +76,8 @@ paths:
             - `RefreshTokenNotFound` — token cannot be resolved.
             - `RefreshTokenSuspended` — the refresh-token session is suspended.
             - `RefreshTokenExpired` — the token is past its `exp`.
-            - `RefreshTokenFamilyCompromised` — the presented token had already been rotated; the whole family has now been revoked.
-            - `RefreshTokenRotationRaceLost` — a concurrent rotation won the conditional write and the family was revoked.
+            - `RefreshTokenFamilyCompromised` — the presented token had already been rotated and grace-window adoption did not apply; the whole family has now been revoked.
+            - `RefreshTokenRotationRaceLost` — a concurrent rotation won the conditional write, grace-window adoption did not apply, and the family was revoked.
           content:
             application/json:
               schema:
@@ -81,6 +88,7 @@ paths:
 
             - `AccountDisabled` — the account behind the refresh token is disabled.
             - `AccountDeleted` — the account has been erased.
+            - `ApplicationDisabled` — the application, parent sector, or parent organization no longer permits token issuance.
             - `ClaimConsentRequired` — a REQUIRED claim is no longer satisfied by a standing grant.
             - `EmailDomainBlocked` — a verified adopted domain now blocks this account.
             - `EmailDomainRequiresSso` — a verified adopted domain now requires SSO and this session was not realized through the required connector.

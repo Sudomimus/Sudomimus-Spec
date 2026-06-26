@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Session
-  version: 1.0.0
+  version: 1.0.1
   summary: Application refresh-token session lifecycle API.
   description: |
     The Session API owns the ordinary Sudomimus application refresh-token
@@ -73,11 +73,19 @@ paths:
           description: |
             Refresh token rejected. The `reason` distinguishes:
 
-            - `RefreshTokenNotFound` — token cannot be resolved.
+            - `RefreshTokenInvalid` — the JWT is malformed, has an unsupported
+              algorithm or issuer, lacks required claims, names an unknown
+              application, or no longer resolves to a stored token row.
+            - `RefreshTokenInvalidType` — the JWT is not a refresh token.
+            - `RefreshTokenInvalidSignature` — signature verification failed.
             - `RefreshTokenSuspended` — the refresh-token session is suspended.
             - `RefreshTokenExpired` — the token is past its `exp`.
+            - `RefreshTokenRevoked` — the refresh-token row was revoked.
             - `RefreshTokenFamilyCompromised` — the presented token had already been rotated and grace-window adoption did not apply; the whole family has now been revoked.
-            - `RefreshTokenRotationRaceLost` — a concurrent rotation won the conditional write, grace-window adoption did not apply, and the family was revoked.
+
+            A concurrent rotation race that cannot adopt the winning child also
+            returns HTTP 401 and revokes the family, but intentionally carries
+            an empty response body rather than exposing a public reason.
           content:
             application/json:
               schema:

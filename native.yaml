@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Native
-  version: 1.0.0
+  version: 2.0.0
   summary: Native client entry point for the Sudomimus authentication platform.
   description: |
     The Native API is the public gateway used by native clients
@@ -82,8 +82,9 @@ paths:
         "400":
           description: |
             Malformed request body. The `reason` distinguishes
-            `Invalid accessKeyIdentifier` (must be a UUID v4) and
-            `Invalid accessKeySecret` (must be 64 lowercase hex chars).
+            `InvalidAccessKeyIdentifier` (must use the canonical
+            `acs_k_<UUID v4>` form) and `InvalidAccessKeySecret` (must use
+            the canonical `acs_t_<64 lowercase hex chars>` form).
           content:
             application/json:
               schema:
@@ -391,15 +392,19 @@ components:
           description: Public anchor identifying the integrating application.
         accessKeyIdentifier:
           type: string
+          pattern: "^acs_k_[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
           description: |
-            UUID v4 string identifying the access-key credential.
-            Format: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`.
+            Canonical access-key identifier, including the mandatory
+            `acs_k_` prefix followed by its UUID.
         accessKeySecret:
           type: string
+          pattern: "^acs_t_[0-9a-f]{64}$"
           description: |
-            64-char lowercase hex string (32 random bytes) returned exactly
-            once when the access key was issued. Never logged or persisted
-            in plaintext server-side after creation.
+            Canonical access-key secret, including the mandatory `acs_t_`
+            prefix followed by 64 lowercase hexadecimal characters (32
+            random bytes). Returned exactly once when the access key was
+            issued. Never logged or persisted in plaintext server-side after
+            creation.
     DirectIssueAccessKeyResponse:
       type: object
       required:

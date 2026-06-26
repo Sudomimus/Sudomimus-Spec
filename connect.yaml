@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Connect
-  version: 1.0.0
+  version: 1.0.1
   summary: Token exchange API for the Sudomimus authentication platform.
   description: |
     The Connect API is the public entry point for integrating applications.
@@ -153,6 +153,11 @@ paths:
               (email / first name / last name) the user has not granted;
               the standing grant must be (re)established through an
               interactive browser login before tokens can be issued.
+            - `EmailDomainBlocked` — one of the account's verified email
+              domains is governed by a `BLOCK_ALL` login policy.
+            - `EmailDomainRequiresSso` — one of the account's verified email
+              domains requires SSO and the inquiry was not realized through
+              the currently required connector.
           content:
             application/json:
               schema:

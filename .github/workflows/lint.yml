@@ -21,4 +21,4 @@ jobs:
         with:
           node-version: "24"
       - name: Lint specs
-        run: npx --yes @redocly/cli@latest lint connect.yaml native.yaml
+        run: npx --yes @redocly/cli@latest lint connect.yaml device.yaml native.yaml session.yaml

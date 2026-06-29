@@ -491,11 +491,13 @@ components:
         requirement:
           type: string
           description: |
-            The developer's policy for the claim. `SYNTHETIC` guarantees the
-            claim is present but permits a generated placeholder (a stand-in
-            name, a proxy email) when the user has not shared real data —
-            unlike `REQUIRED` it never blocks issuance or raises an errand.
-          enum: [OFF, OPTIONAL, REQUIRED, SYNTHETIC]
+            The developer's policy for the claim. `SYNTHETIC_ONLY` always
+            emits the generated placeholder and never asks for real data.
+            `SYNTHETIC_FALLBACK` guarantees the claim is present but uses a
+            generated placeholder (a stand-in name, a proxy email) when the
+            user has not shared real data. Unlike `REQUIRED`, neither
+            synthetic mode blocks issuance or raises an errand.
+          enum: [SYNTHETIC_ONLY, OFF, OPTIONAL, REQUIRED, SYNTHETIC_FALLBACK]
         state:
           type: string
           enum: [UNKNOWN, GRANTED, DENIED]

@@ -238,7 +238,7 @@ components:
       properties:
         requirement:
           type: string
-          enum: [OFF, OPTIONAL, REQUIRED, SYNTHETIC]
+          enum: [SYNTHETIC_ONLY, OFF, OPTIONAL, REQUIRED, SYNTHETIC_FALLBACK]
         state:
           type: string
           enum: [UNKNOWN, GRANTED, DENIED]

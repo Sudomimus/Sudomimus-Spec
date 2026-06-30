@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Session
-  version: 1.0.1
+  version: 1.1.0
   summary: Application refresh-token session lifecycle API.
   description: |
     The Session API owns the ordinary Sudomimus application refresh-token
@@ -244,13 +244,15 @@ components:
           enum: [UNKNOWN, GRANTED, DENIED]
     ClaimsStateView:
       type: object
-      required: [email, firstName, lastName]
+      required: [email, firstName, lastName, avatar]
       properties:
         email:
           $ref: "#/components/schemas/ClaimRequirementStateView"
         firstName:
           $ref: "#/components/schemas/ClaimRequirementStateView"
         lastName:
+          $ref: "#/components/schemas/ClaimRequirementStateView"
+        avatar:
           $ref: "#/components/schemas/ClaimRequirementStateView"
     RefreshRequest:
       type: object

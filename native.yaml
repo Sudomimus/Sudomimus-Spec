@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Native
-  version: 2.0.0
+  version: 2.1.0
   summary: Native client entry point for the Sudomimus authentication platform.
   description: |
     The Native API is the public gateway used by native clients
@@ -423,7 +423,7 @@ components:
             Short-lived access token (JWT). Body shape matches Connect's
             `AccessTokenBody`: the application-visible user key is the
             `subject` (sector subject) claim, not a raw account identifier.
-            The `firstName` / `lastName` / `emailAddress` claims are
+            The `firstName` / `lastName` / `emailAddress` / `avatarUrl` claims are
             consent-gated and may be absent (see Connect `AccessTokenBody`).
         refreshToken:
           type: string
@@ -472,7 +472,7 @@ components:
             Short-lived access token (JWT). Body shape matches Connect's
             `AccessTokenBody`: the application-visible user key is the
             `subject` (sector subject) claim, not a raw account identifier.
-            The `firstName` / `lastName` / `emailAddress` claims are
+            The `firstName` / `lastName` / `emailAddress` / `avatarUrl` claims are
             consent-gated and may be absent (see Connect `AccessTokenBody`).
         refreshToken:
           type: string
@@ -494,8 +494,8 @@ components:
             The developer's policy for the claim. `SYNTHETIC_ONLY` always
             emits the generated placeholder and never asks for real data.
             `SYNTHETIC_FALLBACK` guarantees the claim is present but uses a
-            generated placeholder (a stand-in name, a proxy email) when the
-            user has not shared real data. Unlike `REQUIRED`, neither
+            generated placeholder (a stand-in name, a proxy email, or a
+            generated avatar) when the user has not shared real data. Unlike `REQUIRED`, neither
             synthetic mode blocks issuance or raises an errand.
           enum: [SYNTHETIC_ONLY, OFF, OPTIONAL, REQUIRED, SYNTHETIC_FALLBACK]
         state:
@@ -504,19 +504,22 @@ components:
     ClaimsStateView:
       type: object
       description: |
-        Per-claim view across the three shareable claims, carried on both
+        Per-claim view across the four shareable claims, carried on both
         the 200 (why is a claim absent from the minted token) and the
         claim-gate 403 (what is still owed).
       required:
         - email
         - firstName
         - lastName
+        - avatar
       properties:
         email:
           $ref: "#/components/schemas/ClaimRequirementStateView"
         firstName:
           $ref: "#/components/schemas/ClaimRequirementStateView"
         lastName:
+          $ref: "#/components/schemas/ClaimRequirementStateView"
+        avatar:
           $ref: "#/components/schemas/ClaimRequirementStateView"
     ErrandHandoff:
       type: object

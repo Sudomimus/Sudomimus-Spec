@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Connect
-  version: 1.0.1
+  version: 1.1.0
   summary: Token exchange API for the Sudomimus authentication platform.
   description: |
     The Connect API is the public entry point for integrating applications.
@@ -150,7 +150,7 @@ paths:
             - `AccountDisabled` — the realizing account is disabled.
             - `AccountDeleted` — the realizing account has been erased.
             - `ClaimConsentRequired` — the application requires a claim
-              (email / first name / last name) the user has not granted;
+              (email / first name / last name / avatar) the user has not granted;
               the standing grant must be (re)established through an
               interactive browser login before tokens can be issued.
             - `EmailDomainBlocked` — one of the account's verified email
@@ -348,8 +348,8 @@ components:
             The developer's policy for the claim. `SYNTHETIC_ONLY` always
             emits the generated placeholder and never asks for real data.
             `SYNTHETIC_FALLBACK` guarantees the claim is present but uses a
-            generated placeholder (a stand-in name, a proxy email) when the
-            user has not shared real data. Unlike `REQUIRED`, neither
+            generated placeholder (a stand-in name, a proxy email, or a
+            generated avatar) when the user has not shared real data. Unlike `REQUIRED`, neither
             synthetic mode blocks issuance or raises an errand.
           enum: [SYNTHETIC_ONLY, OFF, OPTIONAL, REQUIRED, SYNTHETIC_FALLBACK]
         state:
@@ -358,19 +358,22 @@ components:
     ClaimsStateView:
       type: object
       description: |
-        Per-claim view across the three shareable claims — why a claim is
+        Per-claim view across the four shareable claims — why a claim is
         or is not present in the minted token (policy OFF, never asked,
         declined, or granted).
       required:
         - email
         - firstName
         - lastName
+        - avatar
       properties:
         email:
           $ref: "#/components/schemas/ClaimRequirementStateView"
         firstName:
           $ref: "#/components/schemas/ClaimRequirementStateView"
         lastName:
+          $ref: "#/components/schemas/ClaimRequirementStateView"
+        avatar:
           $ref: "#/components/schemas/ClaimRequirementStateView"
     RedeemResponse:
       type: object
@@ -404,7 +407,7 @@ components:
         JWT envelope claims (`iss`, `aud`, `iat`, `exp`, `jti`, `kty`,
         `sub`) live in the JWT *header*; this object is the body. The
         application keys its users on `subject`. The `firstName`,
-        `lastName`, and `emailAddress` claims are consent-gated (claim
+        `lastName`, `emailAddress`, and `avatarUrl` claims are consent-gated (claim
         sharing): each is minted only when the application's claim policy
         permits it AND the user has granted that claim, so any of them may
         be absent. Synthetic modes are the exception: `SYNTHETIC_ONLY` always
@@ -436,7 +439,7 @@ components:
           type: string
           description: |
             Email associated with this login. Consent-gated like
-            `firstName` / `lastName` (minted only when policy permits AND
+            `firstName` / `lastName` / `avatarUrl` (minted only when policy permits AND
             the user granted the EMAIL claim). When a real value is included:
             the exact email typed for email-OTP logins, otherwise the
             account's primary email; omitted for accounts with no verified
@@ -445,6 +448,15 @@ components:
             verified email only under `SYNTHETIC_FALLBACK` when shared,
             otherwise a `…@proxy.sudomimus.email` proxy address (best-effort
             forwarding, not guaranteed; not a verified mailbox).
+        avatarUrl:
+          type: string
+          format: uri
+          description: |
+            Sector-scoped public avatar URL. Consent-gated like the other
+            shareable claims and minted as `AVATAR` when policy and grant allow
+            it. The URL is pairwise to this account / sector delivery handle,
+            even when it resolves to the user's global avatar image. Synthetic
+            avatar policies return a generated sector placeholder image.
     RefreshTokenBody:
       type: object
       description: |

@@ -423,7 +423,8 @@ components:
             Short-lived access token (JWT). Body shape matches Connect's
             `AccessTokenBody`: the application-visible user key is the
             `subject` (sector subject) claim, not a raw account identifier.
-            The `firstName` / `lastName` / `emailAddress` / `avatarUrl` claims are
+            The `firstName` / `lastName` / `emailAddress` / `staticAvatarUrl` /
+            `animatedAvatarUrl` claims are
             consent-gated and may be absent (see Connect `AccessTokenBody`).
         refreshToken:
           type: string
@@ -472,7 +473,8 @@ components:
             Short-lived access token (JWT). Body shape matches Connect's
             `AccessTokenBody`: the application-visible user key is the
             `subject` (sector subject) claim, not a raw account identifier.
-            The `firstName` / `lastName` / `emailAddress` / `avatarUrl` claims are
+            The `firstName` / `lastName` / `emailAddress` / `staticAvatarUrl` /
+            `animatedAvatarUrl` claims are
             consent-gated and may be absent (see Connect `AccessTokenBody`).
         refreshToken:
           type: string
@@ -504,14 +506,15 @@ components:
     ClaimsStateView:
       type: object
       description: |
-        Per-claim view across the four shareable claims, carried on both
+        Per-claim view across the five shareable claims, carried on both
         the 200 (why is a claim absent from the minted token) and the
         claim-gate 403 (what is still owed).
       required:
         - email
         - firstName
         - lastName
-        - avatar
+        - staticAvatar
+        - animatedAvatar
       properties:
         email:
           $ref: "#/components/schemas/ClaimRequirementStateView"
@@ -519,7 +522,9 @@ components:
           $ref: "#/components/schemas/ClaimRequirementStateView"
         lastName:
           $ref: "#/components/schemas/ClaimRequirementStateView"
-        avatar:
+        staticAvatar:
+          $ref: "#/components/schemas/ClaimRequirementStateView"
+        animatedAvatar:
           $ref: "#/components/schemas/ClaimRequirementStateView"
     ErrandHandoff:
       type: object

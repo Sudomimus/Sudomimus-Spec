@@ -261,7 +261,8 @@ components:
           description: |
             Short-lived access token (JWT). The application-visible user key is
             the `subject` (sector subject) claim. Claim fields such as
-            `emailAddress`, `firstName`, `lastName`, and `avatarUrl` are minted
+            `emailAddress`, `firstName`, `lastName`, `staticAvatarUrl`, and
+            `animatedAvatarUrl` are minted
             according to the application's claim policy and the user's standing grant.
         refreshToken:
           type: string
@@ -316,13 +317,14 @@ components:
     ClaimsStateView:
       type: object
       description: |
-        Per-claim view across the four shareable claims - why a claim is or is
+        Per-claim view across the five shareable claims - why a claim is or is
         not present in the minted token.
       required:
         - email
         - firstName
         - lastName
-        - avatar
+        - staticAvatar
+        - animatedAvatar
       properties:
         email:
           $ref: "#/components/schemas/ClaimRequirementStateView"
@@ -330,7 +332,9 @@ components:
           $ref: "#/components/schemas/ClaimRequirementStateView"
         lastName:
           $ref: "#/components/schemas/ClaimRequirementStateView"
-        avatar:
+        staticAvatar:
+          $ref: "#/components/schemas/ClaimRequirementStateView"
+        animatedAvatar:
           $ref: "#/components/schemas/ClaimRequirementStateView"
     Error:
       type: object

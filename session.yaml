@@ -244,7 +244,7 @@ components:
           enum: [UNKNOWN, GRANTED, DENIED]
     ClaimsStateView:
       type: object
-      required: [email, firstName, lastName, avatar]
+      required: [email, firstName, lastName, staticAvatar, animatedAvatar]
       properties:
         email:
           $ref: "#/components/schemas/ClaimRequirementStateView"
@@ -252,7 +252,9 @@ components:
           $ref: "#/components/schemas/ClaimRequirementStateView"
         lastName:
           $ref: "#/components/schemas/ClaimRequirementStateView"
-        avatar:
+        staticAvatar:
+          $ref: "#/components/schemas/ClaimRequirementStateView"
+        animatedAvatar:
           $ref: "#/components/schemas/ClaimRequirementStateView"
     RefreshRequest:
       type: object

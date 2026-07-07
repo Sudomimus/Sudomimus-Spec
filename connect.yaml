@@ -255,11 +255,14 @@ components:
         returnMethods:
           type: array
           description: |
-            Optional per-inquiry return-method declaration. Doubles as the
-            concrete delivery info for CALLBACK (carries the callback URL).
-            Absent means no per-inquiry narrowing (CALLBACK is unreachable
-            for this inquiry because no URL is anchored). If present, the
-            array MUST be non-empty; empty arrays are rejected with 400.
+            Optional per-inquiry return-method declaration. Connect accepts
+            CALLBACK, STATUS_POLL, and REVEAL here; DIRECT_ISSUE, OIDC, and
+            DEVICE_CODE are opened by their dedicated APIs after application-
+            level ReturnRules are configured. CALLBACK doubles as the concrete
+            delivery info (carries the callback URL). Absent means no per-
+            inquiry narrowing (CALLBACK is unreachable for this inquiry
+            because no URL is anchored). If present, the array MUST be non-
+            empty; empty arrays are rejected with 400.
           items:
             $ref: "#/components/schemas/ReturnMethodDeclaration"
     EstablishResponse:
@@ -748,16 +751,12 @@ components:
         - $ref: "#/components/schemas/ReturnMethodCallback"
         - $ref: "#/components/schemas/ReturnMethodStatusPoll"
         - $ref: "#/components/schemas/ReturnMethodReveal"
-        - $ref: "#/components/schemas/ReturnMethodDirectIssue"
-        - $ref: "#/components/schemas/ReturnMethodOidc"
       discriminator:
         propertyName: type
         mapping:
           CALLBACK: "#/components/schemas/ReturnMethodCallback"
           STATUS_POLL: "#/components/schemas/ReturnMethodStatusPoll"
           REVEAL: "#/components/schemas/ReturnMethodReveal"
-          DIRECT_ISSUE: "#/components/schemas/ReturnMethodDirectIssue"
-          OIDC: "#/components/schemas/ReturnMethodOidc"
     ReturnMethodCallback:
       type: object
       required:
@@ -777,7 +776,9 @@ components:
               type: string
               description: |
                 Concrete callback URL for this inquiry. The host MUST match
-                one of the application's allowed callback domains.
+                one of the application's allowed callback domains. The scheme
+                MUST be HTTPS except loopback HTTP for local development
+                (`localhost`, `127.0.0.1`, `[::1]`).
     ReturnMethodStatusPoll:
       type: object
       required:
@@ -809,42 +810,6 @@ components:
             realize time and the inquiry is marked redeemed immediately;
             any subsequent `/redeem` for the same inquiry fails with
             `InquiryAlreadyRedeemed`.
-          additionalProperties: false
-    ReturnMethodDirectIssue:
-      type: object
-      required:
-        - type
-        - payload
-      properties:
-        type:
-          type: string
-          enum:
-            - DIRECT_ISSUE
-        payload:
-          type: object
-          description: |
-            Empty payload. Opts the application in to native-api's
-            direct-issue flows (`/direct-issue/steam-ticket`,
-            `/direct-issue/access-key`). Per-inquiry payload is empty
-            because direct-issue does not flow through `/establish`.
-          additionalProperties: false
-    ReturnMethodOidc:
-      type: object
-      required:
-        - type
-        - payload
-      properties:
-        type:
-          type: string
-          enum:
-            - OIDC
-        payload:
-          type: object
-          description: |
-            Accepted on the wire for symmetry, but in practice OIDC is
-            not declared per-inquiry — the OIDC API drives its own
-            inquiry against Connect via CALLBACK-to-self. The matching
-            per-inquiry payload is therefore empty.
           additionalProperties: false
     Error:
       type: object

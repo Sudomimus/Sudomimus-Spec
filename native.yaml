@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Native
-  version: 2.1.0
+  version: 2.2.0
   summary: Native client entry point for the Sudomimus authentication platform.
   description: |
     The Native API is the public gateway used by native clients
@@ -163,16 +163,25 @@ paths:
 
           1. Validates the application's authentication-rule layer admits
              `STEAM_TICKET` for this `steamAppId`.
-          2. Atomically records `sha256(steamTicketHex.toLowerCase())` for
-             replay protection (24-hour window); a duplicate is rejected
-             with `409`.
-          3. Verifies the ticket with Steam's
+          2. Applies fixed-window semantic budgets after local validation:
+             150 eligible attempts per application and 200 globally per 10
+             seconds. It also opens a 60-second failure circuit at 20
+             Steam/upstream failures per application or 60 globally. A
+             blocked request returns `429` before replay storage, per-request
+             auditing, or Steam verification. Per-IP limiting remains an
+             independent edge responsibility.
+          3. Atomically creates a 60-second processing reservation for
+             `sha256(steamTicketHex.toLowerCase())`; a concurrent duplicate
+             is rejected with `409`.
+          4. Verifies the ticket with Steam's
              `ISteamUserAuth/AuthenticateUserTicket` endpoint, identity
-             `"sudomimus"`.
-          4. Validates the application's realize-rule layer (`EMAIL` /
+             `"sudomimus"`, then promotes that exact live reservation to a
+             24-hour replay window. Invalid and upstream-failed attempts keep
+             only the short reservation.
+          5. Validates the application's realize-rule layer (`EMAIL` /
              `STEAM_ID` / `ACCOUNT_ALIAS` / `SECTOR_SUBJECT`) and ensures a
              `DIRECT_ISSUE` return rule exists.
-          5. Issues access + refresh JWTs signed with the application's
+          6. Issues access + refresh JWTs signed with the application's
              private key.
 
         Tokens follow the same shape as those issued through other ordinary
@@ -248,13 +257,22 @@ paths:
                 $ref: "#/components/schemas/Error"
         "409":
           description: |
-            Replay protection conflict — this Steam ticket has already been
-            redeemed within the replay window. Acquire a fresh ticket via
-            `GetAuthTicketForWebApi` and retry.
+            Replay protection conflict — this Steam ticket is currently being
+            verified, was already Steam-verified within the 24-hour replay
+            window, or its processing reservation could not be promoted
+            safely. Acquire a fresh ticket via `GetAuthTicketForWebApi` and
+            retry.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "429":
+          description: |
+            The Steam route's per-application/global attempt budget or failure
+            circuit is exhausted. The response intentionally has no stable
+            reason body; back off before acquiring and submitting another
+            Steam ticket. No replay/audit row or Steam Partner API request is
+            made for this rejection.
         "502":
           description: Steam's verification endpoint was unreachable or returned an unparseable response.
           content:

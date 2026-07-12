@@ -254,6 +254,7 @@ components:
             $ref: "#/components/schemas/RealizeRuleConstraint"
         returnMethods:
           type: array
+          maxItems: 3
           description: |
             Optional per-inquiry return-method declaration. Connect accepts
             CALLBACK, STATUS_POLL, and REVEAL here; DIRECT_ISSUE, OIDC, and

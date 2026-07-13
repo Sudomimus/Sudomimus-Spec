@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Device
-  version: 1.1.0
+  version: 1.2.0
   summary: Device authorization API for public clients.
   description: |
     The Device API is the public entry point for generic device-code
@@ -126,6 +126,11 @@ paths:
       responses:
         "200":
           description: Tokens issued and the device authorization session consumed.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CredentialCacheControl"
+            Pragma:
+              $ref: "#/components/headers/CredentialPragma"
           content:
             application/json:
               schema:
@@ -138,11 +143,17 @@ paths:
               request yet. Continue polling after the current interval.
             - `slow_down` - the client is polling too quickly. Use the returned
               `interval` value for subsequent polls.
-            - `access_denied` - the user denied the request, approval failed, or
-              policy no longer allows token issuance.
+            - `access_denied` - the user denied the request, approval failed,
+              policy no longer allows token issuance, or the exact sector
+              binding changed after Layer 2 approved the session.
             - `expired_token` - the device authorization session expired.
             - `invalid_request` - the `deviceCode` is unknown or has already
               been consumed.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CredentialCacheControl"
+            Pragma:
+              $ref: "#/components/headers/CredentialPragma"
           content:
             application/json:
               schema:
@@ -151,6 +162,11 @@ paths:
           description: |
             Token issuance failed after approval. The device authorization
             session is failed server-side and the client should stop polling.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CredentialCacheControl"
+            Pragma:
+              $ref: "#/components/headers/CredentialPragma"
           content:
             application/json:
               schema:
@@ -162,6 +178,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 components:
+  headers:
+    CredentialCacheControl:
+      description: Prevent storage of the token or polling response.
+      schema:
+        type: string
+        enum: [no-store]
+    CredentialPragma:
+      description: Legacy cache instruction retained for token polling responses.
+      schema:
+        type: string
+        enum: [no-cache]
   schemas:
     HealthResponse:
       type: object

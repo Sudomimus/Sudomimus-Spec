@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Connect
-  version: 1.1.0
+  version: 1.2.0
   summary: Token exchange API for the Sudomimus authentication platform.
   description: |
     The Connect API is the public entry point for integrating applications.
@@ -119,6 +119,11 @@ paths:
       responses:
         "200":
           description: Tokens issued.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CredentialCacheControl"
+            Pragma:
+              $ref: "#/components/headers/CredentialPragma"
           content:
             application/json:
               schema:
@@ -162,6 +167,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "409":
+          description: |
+            The realized authorization is stale.
+
+            - `AuthorizationArtifactStale` — the exact sector binding stopped
+              being authoritative after Layer 2 authorized the Inquiry because
+              the assignment changed or the subject rotated. Start a new
+              Inquiry so the current identity is evaluated before issuance.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         default:
           description: Error response.
           content:
@@ -192,6 +209,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 components:
+  headers:
+    CredentialCacheControl:
+      description: Prevent storage of the credential-bearing response.
+      schema:
+        type: string
+        enum: [no-store]
+    CredentialPragma:
+      description: Legacy cache instruction retained for credential responses.
+      schema:
+        type: string
+        enum: [no-cache]
   securitySchemes:
     SudomimusClientJWT:
       type: http

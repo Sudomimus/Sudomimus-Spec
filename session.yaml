@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Session
-  version: 1.1.0
+  version: 1.2.0
   summary: Application refresh-token session lifecycle API.
   description: |
     The Session API owns the ordinary Sudomimus application refresh-token
@@ -59,6 +59,11 @@ paths:
             New access token and rotated refresh token issued. A benign
             concurrent retry may also receive 200 by adopting the live child
             created by the winning refresh inside the rotation grace window.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CredentialCacheControl"
+            Pragma:
+              $ref: "#/components/headers/CredentialPragma"
           content:
             application/json:
               schema:
@@ -211,6 +216,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 components:
+  headers:
+    CredentialCacheControl:
+      description: Prevent storage of the credential-bearing response.
+      schema:
+        type: string
+        enum: [no-store]
+    CredentialPragma:
+      description: Legacy cache instruction retained for credential responses.
+      schema:
+        type: string
+        enum: [no-cache]
   securitySchemes:
     SudomimusClientJWT:
       type: http

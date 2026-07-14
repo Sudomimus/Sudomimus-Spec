@@ -20,10 +20,13 @@ paths:
   /health:
     get:
       operationId: health
-      summary: Liveness probe for the Session service.
+      summary: Report Session invocation health and deployment identity.
       responses:
         "200":
-          description: Service is ready.
+          description: |
+            The API invocation path is operational and reports the deployed
+            service identity. This response does not assert dependency,
+            configuration, or business-capability readiness.
           content:
             application/json:
               schema:
@@ -105,6 +108,7 @@ paths:
             - `ClaimConsentRequired` — a REQUIRED claim is no longer satisfied by a standing grant.
             - `EmailDomainBlocked` — a verified adopted domain now blocks this account.
             - `EmailDomainRequiresSso` — a verified adopted domain now requires SSO and this session was not realized through the required connector.
+            - `SsoAuthorityConflict` — verified adopted domains require distinct SSO connectors, so no refresh session can satisfy every domain authority until the conflict is repaired.
           content:
             application/json:
               schema:
@@ -240,14 +244,19 @@ components:
   schemas:
     HealthResponse:
       type: object
-      required: [ready, service, version]
+      additionalProperties: false
+      required: [status, service, version]
       properties:
-        ready:
-          type: boolean
+        status:
+          type: string
+          enum: [ok]
+          description: The API invocation path completed successfully.
         service:
           type: string
+          description: Stable runtime service identity.
         version:
           type: string
+          description: Version from the deployed service's version manifest.
     ClaimRequirementStateView:
       type: object
       required: [requirement, state]

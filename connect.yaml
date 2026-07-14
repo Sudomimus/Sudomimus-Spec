@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Connect
-  version: 1.2.0
+  version: 2.0.0
   summary: Token exchange API for the Sudomimus authentication platform.
   description: |
     The Connect API is the public entry point for integrating applications.
@@ -22,10 +22,13 @@ paths:
   /health:
     get:
       operationId: health
-      summary: Liveness probe for the Connect service.
+      summary: Report Connect invocation health and deployment identity.
       responses:
         "200":
-          description: Service is ready.
+          description: |
+            The API invocation path is operational and reports the deployed
+            service identity. This response does not assert dependency,
+            configuration, or business-capability readiness.
           content:
             application/json:
               schema:
@@ -47,7 +50,11 @@ paths:
         `realizeConstraints`, `returnMethods`) are optional. When absent the
         inquiry imposes no per-inquiry narrowing on that layer. When present
         the array MUST be non-empty — an empty array is explicitly rejected
-        with HTTP 400.
+        with HTTP 400. Authentication and realize arrays are limited to 16
+        constraints each, return methods to 3 entries, nested allowlists to
+        128 entries, and the combined stored Inquiry configuration to 65,536
+        serialized UTF-8 bytes. Individual configuration strings are limited
+        to 2,048 UTF-8 bytes.
       security:
         - SudomimusClientJWT: []
       requestBody:
@@ -163,6 +170,10 @@ paths:
             - `EmailDomainRequiresSso` — one of the account's verified email
               domains requires SSO and the inquiry was not realized through
               the currently required connector.
+            - `SsoAuthorityConflict` — verified email domains on the account
+              require distinct SSO connectors. No one connector can satisfy
+              every domain authority, so issuance remains blocked until the
+              domain policies or account email ownership are repaired.
           content:
             application/json:
               schema:
@@ -245,17 +256,22 @@ components:
   schemas:
     HealthResponse:
       type: object
+      additionalProperties: false
       required:
-        - ready
+        - status
         - service
         - version
       properties:
-        ready:
-          type: boolean
+        status:
+          type: string
+          enum: [ok]
+          description: The API invocation path completed successfully.
         service:
           type: string
+          description: Stable runtime service identity.
         version:
           type: string
+          description: Version from the deployed service's version manifest.
     EstablishRequest:
       type: object
       required:
@@ -266,6 +282,8 @@ components:
           description: Public anchor identifying the integrating application.
         authenticationConstraints:
           type: array
+          minItems: 1
+          maxItems: 16
           description: |
             Optional per-inquiry narrowing of the application's
             authentication-rule layer. Absent means no narrowing. If present,
@@ -274,6 +292,8 @@ components:
             $ref: "#/components/schemas/AuthenticationRuleConstraint"
         realizeConstraints:
           type: array
+          minItems: 1
+          maxItems: 16
           description: |
             Optional per-inquiry narrowing of the application's realize-rule
             layer. Absent means no narrowing. If present, the array MUST be
@@ -282,6 +302,7 @@ components:
             $ref: "#/components/schemas/RealizeRuleConstraint"
         returnMethods:
           type: array
+          minItems: 1
           maxItems: 3
           description: |
             Optional per-inquiry return-method declaration. Connect accepts
@@ -613,6 +634,8 @@ components:
         allowedSteamAppIds:
           type: array
           minItems: 1
+          maxItems: 128
+          uniqueItems: true
           items:
             type: integer
             format: int64
@@ -634,11 +657,20 @@ components:
     AuthenticationRuleGoogleOAuthPayload:
       type: object
       description: |
-        Phase 1: any Google account is accepted as long as the
-        application's rule set allows GOOGLE_OAUTH at all. A later
-        phase will add `allowedHostedDomains: string[]` for Google
-        Workspace gating.
+        Empty `allowedHostedDomains` means no hosted-domain gating. A
+        non-empty list requires an exact, case-insensitive match against the
+        Google Workspace `hd` claim. The server lowercases and deduplicates
+        entries before persistence.
       additionalProperties: false
+      properties:
+        allowedHostedDomains:
+          type: array
+          maxItems: 128
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 2048
     AuthenticationRuleGitHubOAuthPayload:
       type: object
       description: |
@@ -655,18 +687,29 @@ components:
       properties:
         allowedGitHubOrgs:
           type: array
+          maxItems: 128
+          uniqueItems: true
           items:
             type: string
             minLength: 1
+            maxLength: 2048
     AuthenticationRuleDiscordOAuthPayload:
       type: object
       description: |
-        Phase 1: any Discord account is accepted as long as the
-        application's rule set allows DISCORD_OAUTH at all. Phase 1.5
-        will add `allowedDiscordGuilds: string[]` for guild (server)
-        gating, which will additionally request the `guilds` OAuth
-        scope and fetch `GET /users/@me/guilds`.
+        Empty `allowedDiscordGuilds` means no guild gating. A non-empty list
+        requires membership in at least one listed Discord guild and causes
+        the authentication flow to request the `guilds` scope. Entries are
+        trimmed and deduplicated before persistence.
       additionalProperties: false
+      properties:
+        allowedDiscordGuilds:
+          type: array
+          maxItems: 128
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 2048
     AuthenticationRuleBattleNetOAuthPayload:
       type: object
       description: |
@@ -717,12 +760,16 @@ components:
       properties:
         allowedEmails:
           type: array
+          minItems: 1
+          maxItems: 128
+          uniqueItems: true
           description: |
             List of email addresses or glob patterns the realized identity
             must match. Glob patterns are bounded by server-side limits to
             prevent regex backtracking attacks.
           items:
             type: string
+            maxLength: 254
     RealizeRuleSteamIdPayload:
       type: object
       description: |
@@ -734,6 +781,9 @@ components:
       properties:
         allowedSteamIds:
           type: array
+          minItems: 1
+          maxItems: 128
+          uniqueItems: true
           items:
             type: string
             pattern: "^(\\*|[0-9]{1,20})$"
@@ -752,6 +802,9 @@ components:
       properties:
         allowedAccountAliases:
           type: array
+          minItems: 1
+          maxItems: 128
+          uniqueItems: true
           items:
             type: string
             minLength: 1
@@ -771,6 +824,9 @@ components:
       properties:
         allowedSectorSubjects:
           type: array
+          minItems: 1
+          maxItems: 128
+          uniqueItems: true
           items:
             type: string
             minLength: 1
@@ -803,11 +859,13 @@ components:
           properties:
             callbackUrl:
               type: string
+              maxLength: 2048
               description: |
                 Concrete callback URL for this inquiry. The host MUST match
                 one of the application's allowed callback domains. The scheme
                 MUST be HTTPS except loopback HTTP for local development
-                (`localhost`, `127.0.0.1`, `[::1]`).
+                (`localhost`, `127.0.0.1`, `[::1]`). The server enforces the
+                length limit in UTF-8 bytes.
     ReturnMethodStatusPoll:
       type: object
       required:

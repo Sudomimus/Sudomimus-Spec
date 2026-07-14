@@ -28,10 +28,13 @@ paths:
   /health:
     get:
       operationId: health
-      summary: Liveness probe for the Native service.
+      summary: Report Native invocation health and deployment identity.
       responses:
         "200":
-          description: Service is ready.
+          description: |
+            The API invocation path is operational and reports the deployed
+            service identity. This response does not assert dependency,
+            configuration, or business-capability readiness.
           content:
             application/json:
               schema:
@@ -113,6 +116,13 @@ paths:
             - `ApplicationDisabled` — the application is disabled.
             - `AccountDisabled` — the resolved account is disabled.
             - `AccountDeleted` — the resolved account has been erased.
+            - `EmailDomainBlocked` — a verified adopted domain blocks the
+              account platform-wide.
+            - `EmailDomainRequiresSso` — a verified adopted domain requires a
+              different SSO connector than this non-interactive proof used.
+            - `SsoAuthorityConflict` — verified adopted domains require
+              distinct SSO connectors. Direct issue remains blocked until the
+              domain policies or account email ownership are repaired.
             - `ClaimConsentRequired` — the application requires a claim the
               user has not yet granted; direct-issue cannot prompt.
             - `RequiredClaimDataMissing` — every required claim is granted,
@@ -246,6 +256,13 @@ paths:
             - `ApplicationDisabled` — the application is disabled.
             - `AccountDisabled` — the resolved account is disabled.
             - `AccountDeleted` — the resolved account has been erased.
+            - `EmailDomainBlocked` — a verified adopted domain blocks the
+              account platform-wide.
+            - `EmailDomainRequiresSso` — a verified adopted domain requires a
+              different SSO connector than this non-interactive proof used.
+            - `SsoAuthorityConflict` — verified adopted domains require
+              distinct SSO connectors. Direct issue remains blocked until the
+              domain policies or account email ownership are repaired.
             - `ClaimConsentRequired` — the application requires a claim the
               user has not yet granted; direct-issue cannot prompt.
             - `RequiredClaimDataMissing` — every required claim is granted,
@@ -423,17 +440,22 @@ components:
   schemas:
     HealthResponse:
       type: object
+      additionalProperties: false
       required:
-        - ready
+        - status
         - service
         - version
       properties:
-        ready:
-          type: boolean
+        status:
+          type: string
+          enum: [ok]
+          description: The API invocation path completed successfully.
         service:
           type: string
+          description: Stable runtime service identity.
         version:
           type: string
+          description: Version from the deployed service's version manifest.
     DirectIssueAccessKeyRequest:
       type: object
       required:
@@ -446,7 +468,7 @@ components:
           description: Public anchor identifying the integrating application.
         accessKeyIdentifier:
           type: string
-          pattern: "^acs_k_[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          pattern: "^acs_k_[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
           description: |
             Canonical access-key identifier, including the mandatory
             `acs_k_` prefix followed by its UUID.

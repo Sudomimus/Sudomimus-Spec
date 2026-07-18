@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Device
-  version: 1.2.0
+  version: 1.3.0
   summary: Device authorization API for public clients.
   description: |
     The Device API is the public entry point for generic device-code
@@ -102,6 +102,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "429":
+          description: |
+            The global or per-application Device creation budget is exhausted.
+            The response intentionally has no stable reason body. No
+            authorization session, code reservation, or audit row is created.
+        "503":
+          description: |
+            The semantic admission counter is unavailable. The request fails
+            closed before application, rule, session, reservation, or audit
+            work and intentionally has no stable reason body.
         default:
           description: Error response.
           content:

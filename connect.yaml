@@ -864,8 +864,13 @@ components:
                 Concrete callback URL for this inquiry. The host MUST match
                 one of the application's allowed callback domains. The scheme
                 MUST be HTTPS except loopback HTTP for local development
-                (`localhost`, `127.0.0.1`, `[::1]`). The server enforces the
-                length limit in UTF-8 bytes.
+                (`localhost`, `127.0.0.1`, `[::1]`). After realization,
+                Connect appends the canonical `exposure-key` and
+                `confirmation-key` query parameters. Existing query parameters
+                and fragments are preserved; caller-supplied or duplicate
+                values for the two canonical names are overwritten. The URL
+                MUST be concrete and MUST NOT contain Inquiry-key templates.
+                The server enforces the length limit in UTF-8 bytes.
     ReturnMethodStatusPoll:
       type: object
       required:

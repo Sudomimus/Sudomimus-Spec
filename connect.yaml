@@ -564,45 +564,192 @@ components:
           type: string
           description: PEM-encoded application public key used to verify issued JWTs.
     AuthenticationRuleConstraint:
+      oneOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintPasskeyUsernameless"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintPasskeyReasoned"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintEmailVerification"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintSteamTicket"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintSteamOpenId"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintAccessKeyDirect"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintGoogleOAuth"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintGitHubOAuth"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintDiscordOAuth"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintBattleNetOAuth"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintXOAuth"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintEnterpriseFederationApplicationManaged"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintEnterpriseFederationDomainManaged"
+      discriminator:
+        propertyName: method
+        mapping:
+          PASSKEY_USERNAMELESS: "#/components/schemas/AuthenticationRuleConstraintPasskeyUsernameless"
+          PASSKEY_REASONED: "#/components/schemas/AuthenticationRuleConstraintPasskeyReasoned"
+          EMAIL_VERIFICATION: "#/components/schemas/AuthenticationRuleConstraintEmailVerification"
+          STEAM_TICKET: "#/components/schemas/AuthenticationRuleConstraintSteamTicket"
+          STEAM_OPENID: "#/components/schemas/AuthenticationRuleConstraintSteamOpenId"
+          ACCESS_KEY_DIRECT: "#/components/schemas/AuthenticationRuleConstraintAccessKeyDirect"
+          GOOGLE_OAUTH: "#/components/schemas/AuthenticationRuleConstraintGoogleOAuth"
+          GITHUB_OAUTH: "#/components/schemas/AuthenticationRuleConstraintGitHubOAuth"
+          DISCORD_OAUTH: "#/components/schemas/AuthenticationRuleConstraintDiscordOAuth"
+          BATTLENET_OAUTH: "#/components/schemas/AuthenticationRuleConstraintBattleNetOAuth"
+          X_OAUTH: "#/components/schemas/AuthenticationRuleConstraintXOAuth"
+          ENTERPRISE_FEDERATION_APPLICATION_MANAGED: "#/components/schemas/AuthenticationRuleConstraintEnterpriseFederationApplicationManaged"
+          ENTERPRISE_FEDERATION_DOMAIN_MANAGED: "#/components/schemas/AuthenticationRuleConstraintEnterpriseFederationDomainManaged"
+    AuthenticationRuleConstraintCommon:
       type: object
-      required:
-        - method
-        - payload
       properties:
-        method:
-          type: string
-          description: Which authentication method this constraint narrows to.
-          enum:
-            - PASSKEY_USERNAMELESS
-            - PASSKEY_REASONED
-            - EMAIL_VERIFICATION
-            - STEAM_TICKET
-            - STEAM_OPENID
-            - ACCESS_KEY_DIRECT
-            - GOOGLE_OAUTH
-            - GITHUB_OAUTH
-            - DISCORD_OAUTH
-            - BATTLENET_OAUTH
-            - X_OAUTH
-        payload:
-          oneOf:
-            - $ref: "#/components/schemas/AuthenticationRulePasskeyUsernamelessPayload"
-            - $ref: "#/components/schemas/AuthenticationRulePasskeyReasonedPayload"
-            - $ref: "#/components/schemas/AuthenticationRuleEmailVerificationPayload"
-            - $ref: "#/components/schemas/AuthenticationRuleSteamTicketPayload"
-            - $ref: "#/components/schemas/AuthenticationRuleSteamOpenIdPayload"
-            - $ref: "#/components/schemas/AuthenticationRuleAccessKeyDirectPayload"
-            - $ref: "#/components/schemas/AuthenticationRuleGoogleOAuthPayload"
-            - $ref: "#/components/schemas/AuthenticationRuleGitHubOAuthPayload"
-            - $ref: "#/components/schemas/AuthenticationRuleDiscordOAuthPayload"
-            - $ref: "#/components/schemas/AuthenticationRuleBattleNetOAuthPayload"
-            - $ref: "#/components/schemas/AuthenticationRuleXOAuthPayload"
         accessTokenTtlSeconds:
           type: integer
+          minimum: 60
+          maximum: 604800
           description: Per-constraint override for access token lifetime. Resolved at realize time.
         refreshTokenTtlSeconds:
           type: integer
+          minimum: 86400
+          maximum: 31536000
           description: Per-constraint override for refresh token lifetime. Resolved at realize time.
+    AuthenticationRuleConstraintPasskeyUsernameless:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [PASSKEY_USERNAMELESS]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRulePasskeyUsernamelessPayload"
+    AuthenticationRuleConstraintPasskeyReasoned:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [PASSKEY_REASONED]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRulePasskeyReasonedPayload"
+    AuthenticationRuleConstraintEmailVerification:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [EMAIL_VERIFICATION]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRuleEmailVerificationPayload"
+    AuthenticationRuleConstraintSteamTicket:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [STEAM_TICKET]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRuleSteamTicketPayload"
+    AuthenticationRuleConstraintSteamOpenId:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [STEAM_OPENID]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRuleSteamOpenIdPayload"
+    AuthenticationRuleConstraintAccessKeyDirect:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [ACCESS_KEY_DIRECT]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRuleAccessKeyDirectPayload"
+    AuthenticationRuleConstraintGoogleOAuth:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [GOOGLE_OAUTH]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRuleGoogleOAuthPayload"
+    AuthenticationRuleConstraintGitHubOAuth:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [GITHUB_OAUTH]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRuleGitHubOAuthPayload"
+    AuthenticationRuleConstraintDiscordOAuth:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [DISCORD_OAUTH]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRuleDiscordOAuthPayload"
+    AuthenticationRuleConstraintBattleNetOAuth:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [BATTLENET_OAUTH]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRuleBattleNetOAuthPayload"
+    AuthenticationRuleConstraintXOAuth:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [X_OAUTH]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRuleXOAuthPayload"
+    AuthenticationRuleConstraintEnterpriseFederationApplicationManaged:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [ENTERPRISE_FEDERATION_APPLICATION_MANAGED]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRuleEnterpriseFederationApplicationManagedPayload"
+    AuthenticationRuleConstraintEnterpriseFederationDomainManaged:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [ENTERPRISE_FEDERATION_DOMAIN_MANAGED]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRuleEnterpriseFederationDomainManagedPayload"
     AuthenticationRulePasskeyUsernamelessPayload:
       type: object
       description: |
@@ -727,32 +874,109 @@ components:
         X_OAUTH at all. Empty payload. X is an email-less provider, so
         Layer-2 EMAIL rules fail closed against an X-only account.
       additionalProperties: false
-    RealizeRuleConstraint:
+    AuthenticationRuleEnterpriseFederationApplicationManagedPayload:
       type: object
+      description: |
+        Application-managed enterprise federation. `connectorAnchor` names an
+        enabled FederationConnector owned by the application's organization.
       required:
-        - constraintType
-        - payload
+        - connectorAnchor
+      additionalProperties: false
       properties:
-        constraintType:
+        connectorAnchor:
           type: string
-          description: Which realize-rule kind this constraint narrows to.
-          enum:
-            - EMAIL
-            - STEAM_ID
-            - ACCOUNT_ALIAS
-            - SECTOR_SUBJECT
-        payload:
-          oneOf:
-            - $ref: "#/components/schemas/RealizeRuleEmailPayload"
-            - $ref: "#/components/schemas/RealizeRuleSteamIdPayload"
-            - $ref: "#/components/schemas/RealizeRuleAccountAliasPayload"
-            - $ref: "#/components/schemas/RealizeRuleSectorSubjectPayload"
+          minLength: 1
+          pattern: "\\S"
+          maxLength: 2048
+    AuthenticationRuleEnterpriseFederationDomainManagedPayload:
+      type: object
+      description: |
+        Empty payload — the connector is selected from the verified adopted
+        domain's SSO_ONLY policy rather than by the application.
+      additionalProperties: false
+    RealizeRuleConstraint:
+      oneOf:
+        - $ref: "#/components/schemas/RealizeRuleConstraintEmail"
+        - $ref: "#/components/schemas/RealizeRuleConstraintSteamId"
+        - $ref: "#/components/schemas/RealizeRuleConstraintAccountAlias"
+        - $ref: "#/components/schemas/RealizeRuleConstraintSectorSubject"
+        - $ref: "#/components/schemas/RealizeRuleConstraintEveryone"
+      discriminator:
+        propertyName: constraintType
+        mapping:
+          EMAIL: "#/components/schemas/RealizeRuleConstraintEmail"
+          STEAM_ID: "#/components/schemas/RealizeRuleConstraintSteamId"
+          ACCOUNT_ALIAS: "#/components/schemas/RealizeRuleConstraintAccountAlias"
+          SECTOR_SUBJECT: "#/components/schemas/RealizeRuleConstraintSectorSubject"
+          EVERYONE: "#/components/schemas/RealizeRuleConstraintEveryone"
+    RealizeRuleConstraintCommon:
+      type: object
+      properties:
         accessTokenTtlSeconds:
           type: integer
+          minimum: 60
+          maximum: 604800
           description: Per-constraint override for access token lifetime. Resolved at realize time.
         refreshTokenTtlSeconds:
           type: integer
+          minimum: 86400
+          maximum: 31536000
           description: Per-constraint override for refresh token lifetime. Resolved at realize time.
+    RealizeRuleConstraintEmail:
+      allOf:
+        - $ref: "#/components/schemas/RealizeRuleConstraintCommon"
+        - type: object
+          required: [constraintType, payload]
+          properties:
+            constraintType:
+              type: string
+              enum: [EMAIL]
+            payload:
+              $ref: "#/components/schemas/RealizeRuleEmailPayload"
+    RealizeRuleConstraintSteamId:
+      allOf:
+        - $ref: "#/components/schemas/RealizeRuleConstraintCommon"
+        - type: object
+          required: [constraintType, payload]
+          properties:
+            constraintType:
+              type: string
+              enum: [STEAM_ID]
+            payload:
+              $ref: "#/components/schemas/RealizeRuleSteamIdPayload"
+    RealizeRuleConstraintAccountAlias:
+      allOf:
+        - $ref: "#/components/schemas/RealizeRuleConstraintCommon"
+        - type: object
+          required: [constraintType, payload]
+          properties:
+            constraintType:
+              type: string
+              enum: [ACCOUNT_ALIAS]
+            payload:
+              $ref: "#/components/schemas/RealizeRuleAccountAliasPayload"
+    RealizeRuleConstraintSectorSubject:
+      allOf:
+        - $ref: "#/components/schemas/RealizeRuleConstraintCommon"
+        - type: object
+          required: [constraintType, payload]
+          properties:
+            constraintType:
+              type: string
+              enum: [SECTOR_SUBJECT]
+            payload:
+              $ref: "#/components/schemas/RealizeRuleSectorSubjectPayload"
+    RealizeRuleConstraintEveryone:
+      allOf:
+        - $ref: "#/components/schemas/RealizeRuleConstraintCommon"
+        - type: object
+          required: [constraintType, payload]
+          properties:
+            constraintType:
+              type: string
+              enum: [EVERYONE]
+            payload:
+              $ref: "#/components/schemas/RealizeRuleEveryonePayload"
     RealizeRuleEmailPayload:
       type: object
       required:
@@ -831,6 +1055,12 @@ components:
             type: string
             minLength: 1
             maxLength: 128
+    RealizeRuleEveryonePayload:
+      type: object
+      description: |
+        Empty payload — the explicit EVERYONE constraint admits any realized
+        identity on this side of the Layer-2 AND boundary.
+      additionalProperties: false
     ReturnMethodDeclaration:
       oneOf:
         - $ref: "#/components/schemas/ReturnMethodCallback"

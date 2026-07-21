@@ -253,7 +253,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "401":
-          description: Steam rejected the ticket as invalid.
+          description: Steam rejected the ticket with provider error code 101.
           content:
             application/json:
               schema:
@@ -328,7 +328,7 @@ paths:
             Steam ticket. No replay/audit row or Steam Partner API request is
             made for this rejection.
         "502":
-          description: Steam's verification endpoint was unreachable or returned an unparseable response.
+          description: Steam's verification endpoint was unreachable, returned a non-101 provider error, or returned an unparseable, malformed, or ambiguous response.
           content:
             application/json:
               schema:

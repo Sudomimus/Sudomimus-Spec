@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Connect
-  version: 2.0.0
+  version: 2.0.1
   summary: Token exchange API for the Sudomimus authentication platform.
   description: |
     The Connect API is the public entry point for integrating applications.
@@ -150,6 +150,14 @@ paths:
               consumed (single-use guard via conditional write; also
               fires after a REVEAL realize that surfaces the tokens
               in-line and immediately marks the inquiry redeemed).
+            - `ApplicationNotFound` — the application bound to the Inquiry no
+              longer exists.
+            - `AuthenticationNotFound` — the realized Authentication record is
+              missing or the Inquiry lacks a valid realized authentication
+              binding.
+            - `AccountNotFound` — the realized Account no longer exists,
+              including when it disappears at the issuance transaction
+              boundary.
           content:
             application/json:
               schema:
@@ -1139,7 +1147,9 @@ components:
         Error response body. The Connect service emits `{ "reason": "<SymbolDescription>" }`
         for known failure modes. When the reason symbol's description begins with
         `PRIVATE`, the body is empty (zero bytes) and only the HTTP status carries
-        signal — both `reason` and the body itself are absent in that case.
+        signal — both `reason` and the body itself are absent in that case. A
+        missing, malformed, or structurally invalid JSON request body returns
+        `InvalidBody` without parser or validation-library detail.
       properties:
         reason:
           type: string

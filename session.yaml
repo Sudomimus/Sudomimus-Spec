@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Session
-  version: 1.2.0
+  version: 1.2.1
   summary: Application refresh-token session lifecycle API.
   description: |
     The Session API owns the ordinary Sudomimus application refresh-token
@@ -112,9 +112,21 @@ paths:
             - `AccountDeleted` — the account has been erased.
             - `ApplicationDisabled` — the application, parent sector, or parent organization no longer permits token issuance.
             - `ClaimConsentRequired` — a REQUIRED claim is no longer satisfied by a standing grant.
+            - `RequiredClaimDataMissing` — the REQUIRED email claim is granted,
+              but the account no longer owns a primary email address to issue.
             - `EmailDomainBlocked` — a verified adopted domain now blocks this account.
             - `EmailDomainRequiresSso` — a verified adopted domain now requires SSO and this session was not realized through the required connector.
             - `SsoAuthorityConflict` — verified adopted domains require distinct SSO connectors, so no refresh session can satisfy every domain authority until the conflict is repaired.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: |
+            `AuthorizationArtifactStale` — the email-identity or exact sector
+            binding changed after refresh authorization was evaluated. Restart
+            through an initial issuance flow so current identity and claim
+            authority are evaluated before another refresh family is used.
           content:
             application/json:
               schema:
@@ -347,6 +359,11 @@ components:
           type: integer
     Error:
       type: object
+      description: |
+        Error response body. A missing, malformed, or structurally invalid JSON
+        request body returns `InvalidBody` without parser or
+        validation-library detail. A documented status-only private failure has
+        an empty response body instead.
       required: [reason]
       properties:
         reason:

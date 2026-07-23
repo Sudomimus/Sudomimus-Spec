@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Device
-  version: 1.3.0
+  version: 1.3.1
   summary: Device authorization API for public clients.
   description: |
     The Device API is the public entry point for generic device-code
@@ -163,8 +163,9 @@ paths:
               distinct SSO connectors; the OAuth device response intentionally
               does not expose a Sudomimus wire reason.
             - `expired_token` - the device authorization session expired.
-            - `invalid_request` - the `deviceCode` is unknown or has already
-              been consumed.
+            - `invalid_request` - the request body is missing, malformed, or
+              structurally invalid; or the `deviceCode` is unknown or has
+              already been consumed.
           headers:
             Cache-Control:
               $ref: "#/components/headers/CredentialCacheControl"
@@ -389,7 +390,9 @@ components:
       description: |
         Error response body for non-polling validation and infrastructure
         failures. `/device-token` handler-level polling states use
-        `DeviceTokenError` instead.
+        `DeviceTokenError` instead. Outside `/device-token`, a missing,
+        malformed, or structurally invalid JSON request body returns
+        `InvalidBody` without parser or validation-library detail.
       properties:
         reason:
           type: string

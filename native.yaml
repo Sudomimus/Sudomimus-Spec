@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Native
-  version: 2.4.0
+  version: 2.4.1
   summary: Native client entry point for the Sudomimus authentication platform.
   description: |
     The Native API is the public gateway used by native clients
@@ -169,12 +169,9 @@ paths:
             per-attempt audit work is performed for this rejection.
         "500":
           description: |
-            Server error while resolving the credential's account. Reason
-            `AccessKeyCredentialAccountMissing`.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+            Internal consistency failure while resolving the credential's
+            account. The response is status-only with an empty body; the
+            server-only classification is not part of the public contract.
         "503":
           description: |
             The semantic admission or credential-failure counter is
@@ -698,7 +695,9 @@ components:
         Error response body. The Native service emits `{ "reason": "<SymbolDescription>" }`
         for known failure modes. When the reason symbol's description begins with
         `PRIVATE`, the body is empty (zero bytes) and only the HTTP status carries
-        signal — both `reason` and the body itself are absent in that case.
+        signal — both `reason` and the body itself are absent in that case. A
+        missing, malformed, or structurally invalid JSON request body returns
+        `InvalidBody` without parser or validation-library detail.
       properties:
         reason:
           type: string

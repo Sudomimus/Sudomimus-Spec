@@ -210,6 +210,8 @@ paths:
         action, so it requires a client-auth JWT with audience
         `sudomimus-session`. Revocation is scoped to the calling application;
         sessions of the same account under other applications are unaffected.
+        Client authentication is evaluated against the raw request body before
+        recursive request-body schema validation.
       security:
         - SudomimusClientJWT: []
       requestBody:

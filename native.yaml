@@ -142,6 +142,11 @@ paths:
             least 15 minutes left and the owed task scope is unchanged, the
             same `errandKey` (with its original `expiresAt`) is returned
             again, so retries cannot split the handoff state.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CredentialCacheControl"
+            Pragma:
+              $ref: "#/components/headers/CredentialPragma"
           content:
             application/json:
               schema:
@@ -290,6 +295,11 @@ paths:
             least 15 minutes left and the owed task scope is unchanged, the
             same `errandKey` (with its original `expiresAt`) is returned
             again, so retries cannot split the handoff state.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CredentialCacheControl"
+            Pragma:
+              $ref: "#/components/headers/CredentialPragma"
           content:
             application/json:
               schema:
@@ -371,6 +381,11 @@ paths:
           description: |
             Either the errand handoff to open, or `errand: null` when nothing is
             owed. `claims` always reports the per-claim state.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CredentialCacheControl"
+            Pragma:
+              $ref: "#/components/headers/CredentialPragma"
           content:
             application/json:
               schema:

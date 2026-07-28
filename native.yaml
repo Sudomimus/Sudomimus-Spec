@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Native
-  version: 2.4.1
+  version: 3.0.0
   summary: Native client entry point for the Sudomimus authentication platform.
   description: |
     The Native API is the public gateway used by native clients
@@ -482,6 +482,7 @@ components:
           description: Version from the deployed service's version manifest.
     DirectIssueAccessKeyRequest:
       type: object
+      additionalProperties: false
       required:
         - applicationAnchor
         - accessKeyIdentifier
@@ -531,6 +532,7 @@ components:
           description: Long-lived refresh token (JWT). Use Session API `/refresh` for renewal without re-presenting the access key.
     DirectIssueSteamTicketRequest:
       type: object
+      additionalProperties: false
       required:
         - applicationAnchor
         - steamTicketHex
@@ -670,6 +672,7 @@ components:
           $ref: "#/components/schemas/ErrandHandoff"
     CreateErrandRequest:
       type: object
+      additionalProperties: false
       required:
         - accessToken
       properties:

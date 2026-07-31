@@ -565,16 +565,12 @@ components:
       required:
         - applicationAnchor
         - applicationName
-        - applicationPublicKey
       properties:
         applicationAnchor:
           type: string
         applicationName:
           type: string
           description: Localized application display name.
-        applicationPublicKey:
-          type: string
-          description: PEM-encoded application public key used to verify issued JWTs.
     AuthenticationRuleConstraint:
       oneOf:
         - $ref: "#/components/schemas/AuthenticationRuleConstraintPasskeyUsernameless"

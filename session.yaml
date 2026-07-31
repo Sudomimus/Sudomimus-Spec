@@ -8,7 +8,9 @@ info:
     lifecycle after an initial flow has issued an access/refresh token pair.
     Connect, device-api, and native-api can all create ordinary refresh-token
     rows; callers use this API to rotate, introspect, logout, or revoke those
-    sessions.
+    sessions. The API also publishes each application's token-signing JWK Set
+    so relying applications can verify access and refresh tokens without a
+    dependency on Connect.
   license:
     name: MIT
     identifier: MIT
@@ -31,6 +33,51 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
+  /applications/{applicationAnchor}/jwks.json:
+    get:
+      operationId: applicationJwks
+      summary: Fetch the public signing keys for one application's tokens.
+      description: |
+        Returns the lifecycle-aware public JWK Set used to verify ordinary
+        application access and refresh tokens. Select the key whose `kid`
+        matches the JWT JOSE header. The set can contain PREPUBLISHED, ACTIVE,
+        and still-published RETIRING keys; it never contains private key
+        material or REVOKED keys.
+      parameters:
+        - name: applicationAnchor
+          in: path
+          required: true
+          description: Stable public application identifier carried by token `aud`.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public JWK Set for the application.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/PublicJwksCacheControl"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationJwksResponse"
+        "400":
+          description: The required application anchor path parameter is missing.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Reason `ApplicationNotFound` — the application anchor is unknown.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /refresh:
     post:
       operationId: refresh
@@ -251,6 +298,11 @@ paths:
                 $ref: "#/components/schemas/Error"
 components:
   headers:
+    PublicJwksCacheControl:
+      description: Public cache lifetime bounded by the signing-key prepublication window.
+      schema:
+        type: string
+        pattern: ^public, max-age=[0-9]+$
     CredentialCacheControl:
       description: Prevent storage of the credential-bearing response.
       schema:
@@ -273,6 +325,38 @@ components:
         `jti`, and `body_sha256` exactly like Connect `/establish`. The `jti` is
         one-time within the `/revoke-all` replay namespace.
   schemas:
+    ApplicationJsonWebKey:
+      type: object
+      additionalProperties: false
+      required: [kty, n, e, kid, use, alg]
+      properties:
+        kty:
+          type: string
+          enum: [RSA]
+        n:
+          type: string
+          description: Base64url-encoded RSA modulus.
+        e:
+          type: string
+          description: Base64url-encoded RSA public exponent.
+        kid:
+          type: string
+          description: Stable signing-key identifier copied into JWT JOSE headers.
+        use:
+          type: string
+          enum: [sig]
+        alg:
+          type: string
+          enum: [RS256]
+    ApplicationJwksResponse:
+      type: object
+      additionalProperties: false
+      required: [keys]
+      properties:
+        keys:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApplicationJsonWebKey"
     HealthResponse:
       type: object
       additionalProperties: false

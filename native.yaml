@@ -523,17 +523,14 @@ components:
         accessToken:
           type: string
           description: |
-            Short-lived access token (JWT). Protected-header `sub` is the
-            pairwise sector subject, `sid` identifies the live
-            ApplicationSession, and `jti` identifies this token instance.
-            The body matches Connect's `AccessTokenBody` and contains no
-            `subject` or raw account identifier.
-            The `firstName` / `lastName` / `emailAddress` / `staticAvatarUrl` /
-            `animatedAvatarUrl` claims are
-            consent-gated and may be absent (see Connect `AccessTokenBody`).
+            Short-lived access token (JWT). Payload `sub` is the pairwise
+            sector subject, `sid` identifies the live ApplicationSession, and
+            `jti` identifies this token instance. It contains no profile claims
+            or raw account identifier; use Session API `/userinfo` for current
+            shared identity data.
         refreshToken:
           type: string
-          description: Long-lived refresh token JWT with stable header `sid`, pairwise header `sub`, version identifier `jti`, and positive body `rotationVersion`. Use Session API `/refresh` for renewal without re-presenting the access key.
+          description: Long-lived refresh token JWT with stable payload `sid`, version identifier `jti`, and positive `rotationVersion`. It contains no user identifier. Use Session API `/refresh` for renewal without re-presenting the access key.
     DirectIssueSteamTicketRequest:
       type: object
       additionalProperties: false
@@ -576,17 +573,14 @@ components:
         accessToken:
           type: string
           description: |
-            Short-lived access token (JWT). Protected-header `sub` is the
-            pairwise sector subject, `sid` identifies the live
-            ApplicationSession, and `jti` identifies this token instance.
-            The body matches Connect's `AccessTokenBody` and contains no
-            `subject` or raw account identifier.
-            The `firstName` / `lastName` / `emailAddress` / `staticAvatarUrl` /
-            `animatedAvatarUrl` claims are
-            consent-gated and may be absent (see Connect `AccessTokenBody`).
+            Short-lived access token (JWT). Payload `sub` is the pairwise
+            sector subject, `sid` identifies the live ApplicationSession, and
+            `jti` identifies this token instance. It contains no profile claims
+            or raw account identifier; use Session API `/userinfo` for current
+            shared identity data.
         refreshToken:
           type: string
-          description: Long-lived refresh token JWT with stable header `sid`, pairwise header `sub`, version identifier `jti`, and positive body `rotationVersion`. Use Session API `/refresh` to obtain a new access token without re-acquiring a Steam ticket.
+          description: Long-lived refresh token JWT with stable payload `sid`, version identifier `jti`, and positive `rotationVersion`. It contains no user identifier. Use Session API `/refresh` to obtain a new access token without re-acquiring a Steam ticket.
     ClaimRequirementStateView:
       type: object
       description: |

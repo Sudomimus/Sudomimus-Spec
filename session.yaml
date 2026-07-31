@@ -194,9 +194,9 @@ paths:
       operationId: introspect
       summary: Check whether the session behind an access token is still valid.
       description: |
-        Strongly resolves the supplied access token's header `sid` and returns
+        Strongly resolves the supplied access token's payload `sid` and returns
         the current effective status of that ApplicationSession. The token's
-        `aud` and pairwise header `sub` must exactly match the stored session.
+        `aud` and pairwise payload `sub` must exactly match the stored session.
         The access token is
         self-authenticating: its signature is verified against the issuing
         application's public key, so no client-auth JWT is required. The access
@@ -227,13 +227,54 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /userinfo:
+    get:
+      operationId: userinfo
+      summary: Resolve current identity data shared with an application.
+      description: |
+        Accepts an ordinary application access token as a Bearer credential and
+        returns current, consent-gated identity data for its live
+        ApplicationSession. This endpoint accepts only sessions whose issuance
+        protocol is `APPLICATION`; OIDC clients use the discovered OIDC
+        `userinfo_endpoint` instead. Profile data is read live and is never
+        copied from the access token.
+      security:
+        - BearerAccessToken: []
+      responses:
+        "200":
+          description: Current application-visible identity data.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CredentialCacheControl"
+            Pragma:
+              $ref: "#/components/headers/CredentialPragma"
+            Vary:
+              description: Prevent shared-cache reuse across Bearer credentials.
+              schema:
+                type: string
+                enum: [Authorization]
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfoResponse"
+        "401":
+          description: Bearer token missing, malformed, expired, inactive, or owned by another issuance protocol.
+          headers:
+            WWW-Authenticate:
+              description: Bearer authentication challenge.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BearerError"
   /logout:
     post:
       operationId: logout
       summary: Revoke the session behind a refresh token.
       description: |
         Revokes the single session identified by the supplied refresh token.
-        Any genuine signed version whose `sid`, `sub`, `aud`, `jti`, and
+        Any genuine signed version whose `sid`, `aud`, `jti`, and
         `rotationVersion` bind to that session may authorize the revocation;
         accepting an older genuine version here does not make it refreshable.
         No client-auth JWT is required. The operation is idempotent.
@@ -322,6 +363,11 @@ components:
         type: string
         enum: [no-cache]
   securitySchemes:
+    BearerAccessToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Ordinary Sudomimus application access token.
     SudomimusClientJWT:
       type: http
       scheme: SudomimusClientJWT
@@ -412,7 +458,7 @@ components:
       properties:
         refreshToken:
           type: string
-          description: Signed refresh credential carrying stable session `sid`, pairwise `sub`, exact version `jti`, and body `rotationVersion`.
+          description: Signed refresh credential carrying stable payload `sid`, exact version `jti`, and `rotationVersion`; it contains no user identifier.
     RefreshResponse:
       type: object
       required: [accessToken, refreshToken, claims]
@@ -421,10 +467,10 @@ components:
           $ref: "#/components/schemas/ClaimsStateView"
         accessToken:
           type: string
-          description: Newly issued short-lived access token JWT carrying the same session `sid` and pairwise `sub` with a fresh `jti`.
+          description: Newly issued short-lived access token JWT carrying payload `sid` and pairwise `sub` with a fresh `jti`.
         refreshToken:
           type: string
-          description: Newly issued refresh token JWT for the same `sid`, with a fresh `jti` and incremented body `rotationVersion`; the presented version has been consumed.
+          description: Newly issued refresh token JWT for the same payload `sid`, with a fresh `jti` and incremented `rotationVersion`; the presented version has been consumed.
     IntrospectRequest:
       type: object
       additionalProperties: false
@@ -432,7 +478,42 @@ components:
       properties:
         accessToken:
           type: string
-          description: Signed access credential whose `sid` is strongly resolved; its own `exp` is intentionally ignored by introspection.
+          description: Signed access credential whose payload `sid` is strongly resolved; its own `exp` is intentionally ignored by introspection.
+    UserInfoResponse:
+      type: object
+      additionalProperties: false
+      required: [sub]
+      properties:
+        sub:
+          type: string
+          minLength: 1
+          description: Pairwise sector subject for this application.
+        email:
+          type: string
+          format: email
+        email_verified:
+          type: boolean
+        name:
+          type: string
+        given_name:
+          type: string
+        family_name:
+          type: string
+        picture:
+          type: string
+          format: uri
+        "https://sudomimus.com/claims/animated_picture":
+          type: string
+          format: uri
+          description: Sudomimus extension claim for the sector-scoped animated avatar URL.
+    BearerError:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: string
+          enum: [invalid_token]
     IntrospectResponse:
       type: object
       required: [status, recommendedRecheckSeconds]

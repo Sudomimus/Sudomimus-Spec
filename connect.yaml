@@ -459,25 +459,24 @@ components:
           description: |
             Long-lived refresh token (JWT). Decode its protected header as
             `RefreshTokenHeader` and its body as `RefreshTokenBody`. The
-            pairwise sector subject is header `sub`, the logical session is
-            `sid`, the rotating bearer instance is `jti`, and the body carries
-            only the positive `rotationVersion`. A raw account identifier
-            never appears in either part.
+            payload binds the logical session as `sid`, names the rotating
+            bearer instance as `jti`, and carries a positive
+            `rotationVersion`. It carries no user identifier or profile data.
         accessToken:
           type: string
           description: |
             Short-lived access token (JWT). Decode its protected header as
             `AccessTokenHeader` and its body as `AccessTokenBody`. The
-            application-visible user key is header `sub`, the logical session
-            is `sid`, and this access-token instance is `jti`.
+            payload carries the application-visible user key as `sub`, the
+            logical session as `sid`, and this access-token instance as `jti`.
+            Fetch current shared profile data from Session API `/userinfo`.
     AccessTokenHeader:
       type: object
-      additionalProperties: true
+      additionalProperties: false
       description: |
-        Decoded protected header of a Sudomimus application access token.
-        Sudomimus places its registered JWT claims in this protected header.
-        A raw account identifier never appears in the token.
-      required: [alg, kid, kty, iss, aud, sub, sid, jti, iat, exp]
+        Exact JOSE protected header of a Sudomimus application access token.
+        Registered JWT claims live in the payload.
+      required: [alg, kid, typ]
       properties:
         alg:
           type: string
@@ -486,11 +485,22 @@ components:
           type: string
           minLength: 1
           description: Application token-signing key identifier.
-        kty:
+        typ:
           type: string
-          enum: [Access]
+          enum: [vnd.sudomimus.application-access+jwt]
+    AccessTokenBody:
+      type: object
+      additionalProperties: false
+      description: |
+        Minimal payload of a Sudomimus access token. It contains only
+        registered JWT claims and session binding. It never contains a raw
+        account identifier or profile claims; use Session API `/userinfo` for
+        current consent-gated identity data.
+      required: [iss, aud, sub, sid, jti, iat, exp]
+      properties:
         iss:
           type: string
+          format: uri
           minLength: 1
         aud:
           type: string
@@ -514,70 +524,13 @@ components:
         exp:
           type: integer
           minimum: 1
-    AccessTokenBody:
+    RefreshTokenHeader:
       type: object
       additionalProperties: false
       description: |
-        Decoded body of a Sudomimus access token. Identity and session claims
-        (`sub`, `sid`, and `jti`) live in `AccessTokenHeader`; this body never
-        duplicates the subject and never contains a raw account identifier.
-        The `firstName`,
-        `lastName`, `emailAddress`, `staticAvatarUrl`, and `animatedAvatarUrl` claims are consent-gated (claim
-        sharing): each is minted only when the application's claim policy
-        permits it AND the user has granted that claim, so any of them may
-        be absent. Synthetic modes are the exception: `SYNTHETIC_ONLY` always
-        emits a generated placeholder, and `SYNTHETIC_FALLBACK` emits real
-        data when granted or the placeholder otherwise.
-      properties:
-        firstName:
-          type: string
-          description: |
-            Given name. Minted only when the application's claim policy
-            permits it AND the user has granted the claim; may be absent
-            even when the account has a value stored. Under a synthetic policy
-            it is always present, possibly a placeholder name.
-        lastName:
-          type: string
-          description: |
-            Family name. Same consent gating as `firstName`.
-        emailAddress:
-          type: string
-          description: |
-            Email associated with this login. Consent-gated like
-            `firstName` / `lastName` / avatar URLs (minted only when policy permits AND
-            the user granted the EMAIL claim). When a real value is included:
-            the exact email typed for email-OTP logins, otherwise the
-            account's primary email; omitted for accounts with no verified
-            email (e.g. Steam-only or AccessKey-only). Synthetic email policies
-            are the exception: the field is then always present — a real
-            verified email only under `SYNTHETIC_FALLBACK` when shared,
-            otherwise a `…@proxy.sudomimus.email` proxy address (best-effort
-            forwarding, not guaranteed; not a verified mailbox).
-        staticAvatarUrl:
-          type: string
-          format: uri
-          description: |
-            Sector-scoped static public avatar URL. Consent-gated like the other
-            shareable claims and minted as `STATIC_AVATAR` when policy and grant
-            allow it. The URL is pairwise to this account / sector delivery
-            handle, even when it resolves to the user's global avatar image.
-            Synthetic avatar policies return a generated sector placeholder image.
-        animatedAvatarUrl:
-          type: string
-          format: uri
-          description: |
-            Sector-scoped animated public avatar URL. Consent-gated separately
-            from `staticAvatarUrl` and minted as `ANIMATED_AVATAR` when policy
-            and grant allow it. If the selected avatar has no animation, this
-            field is the same URL as `staticAvatarUrl`.
-    RefreshTokenHeader:
-      type: object
-      additionalProperties: true
-      description: |
-        Decoded protected header of a Sudomimus refresh token. `sid` stays
-        stable across rotation, while every signed version has a distinct
-        `jti`. A raw account identifier never appears in the token.
-      required: [alg, kid, kty, iss, aud, sub, sid, jti, iat, exp]
+        Exact JOSE protected header of a Sudomimus refresh token. Registered
+        JWT claims and rotation state live in the payload.
+      required: [alg, kid, typ]
       properties:
         alg:
           type: string
@@ -586,20 +539,27 @@ components:
           type: string
           minLength: 1
           description: Application token-signing key identifier.
-        kty:
+        typ:
           type: string
-          enum: [Refresh]
+          enum: [vnd.sudomimus.application-refresh+jwt]
+    RefreshTokenBody:
+      type: object
+      additionalProperties: false
+      description: |
+        Minimal payload of a Sudomimus refresh token. `sid` stays stable across
+        rotation, while every signed version has a distinct `jti` and positive
+        `rotationVersion`. The payload contains no user identifier, profile
+        claim, or raw account identifier.
+      required: [iss, aud, sid, jti, iat, exp, rotationVersion]
+      properties:
         iss:
           type: string
+          format: uri
           minLength: 1
         aud:
           type: string
           minLength: 1
           description: Public application anchor.
-        sub:
-          type: string
-          minLength: 1
-          description: Pairwise sector subject, equal to the access token's `sub` for the same session.
         sid:
           type: string
           minLength: 1
@@ -614,15 +574,6 @@ components:
         exp:
           type: integer
           minimum: 1
-    RefreshTokenBody:
-      type: object
-      additionalProperties: false
-      description: |
-        Decoded body of a Sudomimus refresh token. The exact positive version
-        is signed together with header `sid`, `sub`, and `jti`. The body never
-        contains a sector subject or raw account identifier.
-      required: [rotationVersion]
-      properties:
         rotationVersion:
           type: integer
           minimum: 1

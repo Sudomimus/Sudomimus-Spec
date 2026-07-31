@@ -360,11 +360,13 @@ paths:
 
         Authenticated by an access token you already hold for the user (from an
         earlier direct-issue or Connect redeem). It is verified and its expiry is
-        enforced, then reverse-resolved to the account — so present a fresh one.
-        The access token only identifies the user; it never authorizes the
-        sharing. Every minted ticket therefore forces an in-browser
-        re-authentication before any task runs, so a leaked token cannot alter a
-        user's grants.
+        enforced, then its `sid` is strongly resolved to an ACTIVE
+        ApplicationSession whose application and `sub` bindings must exactly
+        match the token. The account comes from that session, so present a fresh,
+        still-live session credential. The access token only identifies the
+        user; it never authorizes the sharing. Every minted ticket therefore
+        forces an in-browser re-authentication before any task runs, so a leaked
+        token cannot alter a user's grants.
 
         When the account already satisfies the application's claim policy the
         response carries `errand: null` — nothing to do, just direct-issue.
@@ -391,7 +393,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreateErrandResponse"
         "401":
-          description: The access token is missing, malformed, expired, or no longer resolves to an account.
+          description: The access token is missing, malformed, expired, or its ApplicationSession is no longer active.
           content:
             application/json:
               schema:
@@ -521,15 +523,17 @@ components:
         accessToken:
           type: string
           description: |
-            Short-lived access token (JWT). Body shape matches Connect's
-            `AccessTokenBody`: the application-visible user key is the
-            `subject` (sector subject) claim, not a raw account identifier.
+            Short-lived access token (JWT). Protected-header `sub` is the
+            pairwise sector subject, `sid` identifies the live
+            ApplicationSession, and `jti` identifies this token instance.
+            The body matches Connect's `AccessTokenBody` and contains no
+            `subject` or raw account identifier.
             The `firstName` / `lastName` / `emailAddress` / `staticAvatarUrl` /
             `animatedAvatarUrl` claims are
             consent-gated and may be absent (see Connect `AccessTokenBody`).
         refreshToken:
           type: string
-          description: Long-lived refresh token (JWT). Use Session API `/refresh` for renewal without re-presenting the access key.
+          description: Long-lived refresh token JWT with stable header `sid`, pairwise header `sub`, version identifier `jti`, and positive body `rotationVersion`. Use Session API `/refresh` for renewal without re-presenting the access key.
     DirectIssueSteamTicketRequest:
       type: object
       additionalProperties: false
@@ -572,15 +576,17 @@ components:
         accessToken:
           type: string
           description: |
-            Short-lived access token (JWT). Body shape matches Connect's
-            `AccessTokenBody`: the application-visible user key is the
-            `subject` (sector subject) claim, not a raw account identifier.
+            Short-lived access token (JWT). Protected-header `sub` is the
+            pairwise sector subject, `sid` identifies the live
+            ApplicationSession, and `jti` identifies this token instance.
+            The body matches Connect's `AccessTokenBody` and contains no
+            `subject` or raw account identifier.
             The `firstName` / `lastName` / `emailAddress` / `staticAvatarUrl` /
             `animatedAvatarUrl` claims are
             consent-gated and may be absent (see Connect `AccessTokenBody`).
         refreshToken:
           type: string
-          description: Long-lived refresh token (JWT). Use Session API `/refresh` to obtain a new access token without re-acquiring a Steam ticket.
+          description: Long-lived refresh token JWT with stable header `sid`, pairwise header `sub`, version identifier `jti`, and positive body `rotationVersion`. Use Session API `/refresh` to obtain a new access token without re-acquiring a Steam ticket.
     ClaimRequirementStateView:
       type: object
       description: |
@@ -680,9 +686,9 @@ components:
           type: string
           description: |
             An access token (JWT) the application already holds for the user.
-            Verified server-side with its expiry enforced, then reverse-resolved
-            from its `subject` (sector subject) claim to the account — so present
-            a currently-valid token, not an expired one.
+            Verified server-side with its expiry enforced, then resolved through
+            its `sid` to an ACTIVE ApplicationSession with exact application and
+            `sub` bindings — so present a currently valid, live-session token.
     CreateErrandResponse:
       type: object
       required:

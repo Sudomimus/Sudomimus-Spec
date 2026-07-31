@@ -308,16 +308,19 @@ components:
         accessToken:
           type: string
           description: |
-            Short-lived access token (JWT). The application-visible user key is
-            the `subject` (sector subject) claim. Claim fields such as
+            Short-lived access token (JWT). Protected-header `sub` is the
+            pairwise sector subject, `sid` identifies the live
+            ApplicationSession, and `jti` identifies this access-token
+            instance. The body contains only consent-gated claim fields such as
             `emailAddress`, `firstName`, `lastName`, `staticAvatarUrl`, and
-            `animatedAvatarUrl` are minted
-            according to the application's claim policy and the user's standing grant.
+            `animatedAvatarUrl`; it has no `subject` or raw account id.
         refreshToken:
           type: string
           description: |
-            Long-lived refresh token (JWT). Use Session API `/refresh` to rotate it
-            and issue later access tokens.
+            Long-lived refresh token (JWT). Header `sub` and `sid` match the
+            access token, `jti` names this exact bearer version, and body
+            `rotationVersion` is a positive integer. Use Session API `/refresh`
+            to rotate it and issue later access tokens.
         claims:
           $ref: "#/components/schemas/ClaimsStateView"
     DeviceTokenError:

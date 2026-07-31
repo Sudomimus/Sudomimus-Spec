@@ -268,6 +268,46 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BearerError"
+  /claim-state:
+    get:
+      operationId: claimState
+      summary: Resolve current identity-claim policy and consent state.
+      description: |
+        Accepts an ordinary application access token as a Bearer credential and
+        returns the live policy requirement and standing consent state for each
+        shareable UserInfo claim. This endpoint accepts only sessions whose
+        issuance protocol is `APPLICATION`; OIDC clients use the custom
+        `claim_state_endpoint` from OIDC discovery instead.
+      security:
+        - BearerAccessToken: []
+      responses:
+        "200":
+          description: Current application-visible claim state.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CredentialCacheControl"
+            Pragma:
+              $ref: "#/components/headers/CredentialPragma"
+            Vary:
+              description: Prevent shared-cache reuse across Bearer credentials.
+              schema:
+                type: string
+                enum: [Authorization]
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaimStateResponse"
+        "401":
+          description: Bearer token missing, malformed, expired, inactive, or owned by another issuance protocol.
+          headers:
+            WWW-Authenticate:
+              description: Bearer authentication challenge.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BearerError"
   /logout:
     post:
       operationId: logout
@@ -502,10 +542,36 @@ components:
         picture:
           type: string
           format: uri
-        "https://sudomimus.com/claims/animated_picture":
+        picture_animated:
           type: string
           format: uri
-          description: Sudomimus extension claim for the sector-scoped animated avatar URL.
+          description: Sudomimus private claim for the sector-scoped animated avatar URL.
+    UserInfoClaimStateView:
+      type: object
+      additionalProperties: false
+      required: [email, given_name, family_name, picture, picture_animated]
+      properties:
+        email:
+          $ref: "#/components/schemas/ClaimRequirementStateView"
+        given_name:
+          $ref: "#/components/schemas/ClaimRequirementStateView"
+        family_name:
+          $ref: "#/components/schemas/ClaimRequirementStateView"
+        picture:
+          $ref: "#/components/schemas/ClaimRequirementStateView"
+        picture_animated:
+          $ref: "#/components/schemas/ClaimRequirementStateView"
+    ClaimStateResponse:
+      type: object
+      additionalProperties: false
+      required: [sub, claims]
+      properties:
+        sub:
+          type: string
+          minLength: 1
+          description: Pairwise sector subject for this application.
+        claims:
+          $ref: "#/components/schemas/UserInfoClaimStateView"
     BearerError:
       type: object
       additionalProperties: false

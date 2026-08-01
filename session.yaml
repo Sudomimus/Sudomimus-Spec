@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Session
-  version: 3.0.0
+  version: 4.0.0
   summary: Application session lifecycle API.
   description: |
     The Session API owns ordinary Sudomimus ApplicationSession refresh

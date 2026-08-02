@@ -25,18 +25,8 @@ Spec changes follow SemVer on the `info.version` field of each document:
 - **minor** — additive changes (new endpoints, new optional fields, broader types).
 - **patch** — descriptive-only changes (docs, examples, summaries).
 
-## Consumed by
+## Consumers
 
-Generated SDKs and public reference docs consume these contracts. Current SDK
-package mappings:
-
-- `sdks/typescript/packages/connect` ← `specs/connect.yaml`
-- `sdks/typescript/packages/session` ← `specs/session.yaml`
-- `sdks/typescript/packages/native`  ← `specs/native.yaml`
-- `sdks/python/packages/sudomimus-connect` ← `specs/connect.yaml`
-- `sdks/python/packages/sudomimus-session` ← `specs/session.yaml`
-- `sdks/python/packages/sudomimus-native`  ← `specs/native.yaml`
-
-The Device API spec is published for the public HTTP contract and reference
-documentation. Add the corresponding SDK package rows here when generated Device
-clients are introduced.
+Public reference documentation and generated clients consume these contracts.
+Client-generation repositories own their package mappings; this repository owns
+only the OpenAPI source documents and their synchronization checks.

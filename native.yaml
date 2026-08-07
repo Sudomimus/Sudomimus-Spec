@@ -114,7 +114,7 @@ paths:
             - `Layer1Denied`, `Layer2Denied`, `Layer3Denied` — the
               application's three-layer rules rejected this attempt
               (which layer is indicated by the reason code).
-            - `ApplicationDisabled` — the application is disabled.
+            - `ApplicationNotActive` — the application is disabled.
             - `AccountDisabled` — the resolved account is disabled.
             - `AccountDeleted` — the resolved account has been erased.
             - `EmailDomainBlocked` — a verified adopted domain blocks the
@@ -267,7 +267,7 @@ paths:
             - `Layer1Denied`, `Layer2Denied`, `Layer3Denied` — the
               application's three-layer rules rejected this attempt
               (which layer is indicated by the reason code).
-            - `ApplicationDisabled` — the application is disabled.
+            - `ApplicationNotActive` — the application is disabled.
             - `AccountDisabled` — the resolved account is disabled.
             - `AccountDeleted` — the resolved account has been erased.
             - `EmailDomainBlocked` — a verified adopted domain blocks the

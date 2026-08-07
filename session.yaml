@@ -162,7 +162,7 @@ paths:
 
             - `AccountDisabled` — the account behind the refresh token is disabled.
             - `AccountDeleted` — the account has been erased.
-            - `ApplicationDisabled` — the application, parent sector, or parent organization no longer permits token issuance.
+            - `ApplicationNotActive` — the application, parent sector, or parent organization no longer permits token issuance.
             - `ClaimConsentRequired` — a REQUIRED claim is no longer satisfied by a standing grant.
             - `RequiredClaimDataMissing` — the REQUIRED email claim is granted,
               but the account no longer owns a primary email address to issue.

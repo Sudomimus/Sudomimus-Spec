@@ -89,7 +89,7 @@ paths:
             The application cannot start device authorization. The `reason`
             distinguishes:
 
-            - `ApplicationDisabled` - the application has been disabled.
+            - `ApplicationNotActive` - the application has been disabled.
             - `Layer3Denied` - the application does not currently have an
               enabled `DEVICE_CODE` ReturnRule.
           content:

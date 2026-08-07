@@ -79,7 +79,7 @@ paths:
         "403":
           description: |
             Application is disabled.
-            Reason `ApplicationDisabled`.
+            Reason `ApplicationNotActive`.
           content:
             application/json:
               schema:
@@ -166,7 +166,7 @@ paths:
           description: |
             The attempt was refused. The `reason` distinguishes:
 
-            - `ApplicationDisabled` — the application is disabled.
+            - `ApplicationNotActive` — the application is disabled.
             - `AccountDisabled` — the realizing account is disabled.
             - `AccountDeleted` — the realizing account has been erased.
             - `ClaimConsentRequired` — the application requires a claim

@@ -57,6 +57,11 @@ paths:
       responses:
         "200":
           description: Inquiry established.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CredentialCacheControl"
+            Pragma:
+              $ref: "#/components/headers/CredentialPragma"
           content:
             application/json:
               schema:
@@ -95,6 +100,11 @@ paths:
       responses:
         "200":
           description: Current status of the inquiry.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CredentialCacheControl"
+            Pragma:
+              $ref: "#/components/headers/CredentialPragma"
           content:
             application/json:
               schema:
@@ -150,6 +160,9 @@ paths:
             - `AccountDeleted` — the realizing account has been erased.
             - `ClaimConsentRequired` — interactive login is required to
               establish the current claim grant.
+            - `RequiredClaimDataMissing` — a REQUIRED claim cannot currently
+              be disclosed. An approved account without a surname is not
+              missing data and discloses an empty surname.
             - `EmailDomainBlocked`, `EmailDomainRequiresSso`, or
               `SsoAuthorityConflict` — current email-domain policy prevents
               issuance.

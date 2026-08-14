@@ -498,6 +498,7 @@ components:
           type: string
         family_name:
           type: string
+          description: The approved surname. Empty when the account legitimately has no surname.
         picture:
           type: string
           format: uri

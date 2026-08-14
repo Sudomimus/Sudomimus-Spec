@@ -49,6 +49,11 @@ paths:
       responses:
         "200":
           description: Device authorization session created.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CredentialCacheControl"
+            Pragma:
+              $ref: "#/components/headers/CredentialPragma"
           content:
             application/json:
               schema:

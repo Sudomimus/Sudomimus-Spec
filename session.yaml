@@ -6,7 +6,10 @@ info:
   description: |
     Use the Session API to verify application tokens, rotate refresh tokens,
     inspect live session authority, retrieve current shared identity data, and
-    revoke sessions created through Connect, Device, or Native flows.
+    revoke sessions created through Connect, Device, or Native flows. It
+    accepts ordinary application access tokens and dedicated Workload access
+    tokens carrying pairwise `act.sub`; both resolve to the owner Account's
+    existing claim-sharing authority.
   license:
     name: MIT
     identifier: MIT
@@ -83,7 +86,9 @@ paths:
         success. A near-simultaneous retry may receive the already-issued
         winning token pair. Reuse outside that allowance revokes the session;
         restart through an initial issuance flow. OIDC sessions must use the
-        OIDC `/token` endpoint instead.
+        OIDC `/token` endpoint instead. Workload refresh tokens have the same
+        actor-free wire shape; the authoritative session restores the Workload
+        actor and emits a dedicated Workload access token on every rotation.
       requestBody:
         required: true
         content:
@@ -167,7 +172,9 @@ paths:
         Returns the current effective status of the session identified by a
         signed access token. No client-auth JWT is required. The access token's
         own expiry is intentionally ignored because the response describes the
-        underlying session rather than token validity.
+        underlying session rather than token validity. Workload tokens are
+        accepted only when the session's Workload principal, generation,
+        pairwise actor subject, and source credential remain authoritative.
       requestBody:
         required: true
         content:
@@ -466,7 +473,13 @@ components:
           $ref: "#/components/schemas/ClaimsStateView"
         accessToken:
           type: string
-          description: Newly issued short-lived access token JWT carrying payload `sid` and pairwise `sub` with a fresh `jti`.
+          description: |
+            Newly issued short-lived access token JWT carrying payload `sid`
+            and owner Account pairwise `sub` with a fresh `jti`. A
+            Workload-descended session uses media type
+            `vnd.sudomimus.workload-access+jwt` and adds exact pairwise
+            `act: {sub}`; an Account session uses
+            `vnd.sudomimus.application-access+jwt` and has no `act`.
         refreshToken:
           type: string
           description: Newly issued refresh token JWT for the same payload `sid`, with a fresh `jti` and incremented `rotationVersion`; the presented version has been consumed.
@@ -477,7 +490,7 @@ components:
       properties:
         accessToken:
           type: string
-          description: Signed access credential identifying the session to inspect; its own `exp` is intentionally ignored.
+          description: Signed Account or Workload access credential identifying the session to inspect; its own `exp` is intentionally ignored.
     UserInfoResponse:
       type: object
       additionalProperties: false
@@ -570,7 +583,7 @@ components:
       properties:
         subject:
           type: string
-          description: Application-visible sector subject (`sub`) for the account to revoke.
+          description: Application-visible owner Account sector subject (`sub`). Revocation advances the shared Account/Application authority and ends both human and Workload-descended sessions for that subject.
     RevokeAllResponse:
       type: object
       additionalProperties: false

@@ -4,17 +4,19 @@ info:
   version: 4.0.0
   summary: Native client entry point for the Sudomimus authentication platform.
   description: |
-    Native clients exchange a Steam Web API ticket or an application-scoped
-    access key for Sudomimus application tokens. Direct issuance completes in
-    one request without a browser handoff or inquiry polling.
+    Native clients exchange a Steam Web API ticket, an application-scoped
+    access key, or a signed Ed25519 public-key assertion for Sudomimus
+    application tokens. Direct issuance completes in one request without a
+    browser handoff or inquiry polling.
   license:
     name: MIT
     identifier: MIT
 servers:
   - url: https://native-api.sudomimus.com
     description: Production
-# No HTTP-level auth: the direct-issue endpoints authenticate via credentials
-# (Steam ticket / access-key) carried in the request body.
+# No global HTTP-level auth. Steam and AccessKey direct issue authenticate with
+# request-body credentials; public-key direct issue uses its operation-level
+# signed-assertion Authorization scheme.
 security: []
 paths:
   /health:
@@ -123,6 +125,96 @@ paths:
           description: Access-key issuance failed with an empty response body.
         "503":
           description: Access-key issuance is temporarily unavailable.
+        default:
+          description: Error response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /direct-issue/public-key:
+    post:
+      operationId: directIssuePublicKey
+      summary: Exchange an Ed25519 public-key assertion for application tokens.
+      description: |
+        Authenticates an Account or one of its Agent/Automation principals with
+        a compact JWT signed by a registered Ed25519 key. The credential's
+        immutable Application/Sector applicability must include the named
+        application. Account credentials issue ordinary application access
+        tokens; Workload credentials issue the dedicated Workload access-token
+        type with pairwise `act.sub`. Credential rejection uses the single
+        opaque reason `PublicKeyDirectDenied`.
+
+        The JOSE header must be exact `{alg:"EdDSA",
+        typ:"vnd.sudomimus.public-key-assertion+jwt",kid:"pky_..."}`. Claims
+        must be exact `iss`, `aud`, `iat`, `exp`, `jti`, and `requestHash`;
+        `iss` equals `kid`, `aud` is `sudomimus-native-public-key`, lifetime is
+        at most 60 seconds, and `requestHash` is base64url SHA-256 of the exact
+        request-body bytes. Every retry uses a new random 128-bit `jti`.
+      security:
+        - PublicKeyAssertion: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DirectIssuePublicKeyRequest"
+      responses:
+        "200":
+          description: Tokens issued.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CredentialCacheControl"
+            Pragma:
+              $ref: "#/components/headers/CredentialPragma"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DirectIssueAccessKeyResponse"
+        "400":
+          description: Malformed request body or public-key assertion syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: |
+            Reason `PublicKeyDirectDenied`: the credential or signed assertion
+            was rejected without revealing whether the key exists or which
+            principal owns it.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: |
+            Application rule, Account lifecycle, email-domain policy, or claim
+            requirements refused issuance. Claim-gate responses use the same
+            `claims` and `errand` handoff as AccessKey issuance.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DirectIssueDeniedError"
+        "404":
+          description: Application anchor not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: |
+            The assertion `jti` was already seen, or identity authority changed
+            during issuance. Sign a fresh assertion and retry the complete
+            exchange.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Too many public-key attempts. Back off before retrying.
+        "500":
+          description: Public-key issuance failed with an empty response body.
+        "503":
+          description: Public-key issuance is temporarily unavailable.
         default:
           description: Error response.
           content:
@@ -312,6 +404,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 components:
+  securitySchemes:
+    PublicKeyAssertion:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: '`SudomimusPublicKeyJWT <compact signed assertion>`.'
   headers:
     CredentialCacheControl:
       description: Prevent storage of the credential-bearing response.
@@ -366,6 +464,15 @@ components:
             Canonical access-key secret, including the mandatory `acs_t_`
             prefix followed by 64 lowercase hexadecimal characters (32
             random bytes). Returned only when the access key is issued.
+    DirectIssuePublicKeyRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - applicationAnchor
+      properties:
+        applicationAnchor:
+          type: string
+          description: Public anchor identifying the integrating application.
     DirectIssueAccessKeyResponse:
       type: object
       required:
@@ -381,11 +488,14 @@ components:
         accessToken:
           type: string
           description: |
-            Short-lived access token (JWT). Payload `sub` is the pairwise
-            sector subject, `sid` identifies the session, and
-            `jti` identifies this token instance. It contains no profile claims
-            or raw account identifier; use Session API `/userinfo` for current
-            shared identity data.
+            Account credentials use media type
+            `vnd.sudomimus.application-access+jwt`. Workload credentials use
+            `vnd.sudomimus.workload-access+jwt` and add exact
+            `act: {sub: <pairwise-workload-subject>}`. In both cases payload
+            `sub` is the owner Account's pairwise sector subject, `sid`
+            identifies the session, and `jti` identifies this token instance.
+            The token contains no profile claims or raw Account/Workload
+            identifier; use Session API `/userinfo` for current shared data.
         refreshToken:
           type: string
           description: Long-lived refresh token JWT with stable payload `sid`, version identifier `jti`, and positive `rotationVersion`. It contains no user identifier. Use Session API `/refresh` for renewal without re-presenting the access key.

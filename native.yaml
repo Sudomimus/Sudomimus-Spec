@@ -512,6 +512,9 @@ components:
           description: Public anchor identifying the integrating application.
         steamTicketHex:
           type: string
+          minLength: 2
+          maxLength: 5120
+          pattern: "^(?:[0-9a-fA-F]{2}){1,2560}$"
           description: |
             Hex-encoded Steam Web API auth ticket bytes returned from
             `ISteamUser::GetAuthTicketForWebApi("sudomimus")`. Hexadecimal

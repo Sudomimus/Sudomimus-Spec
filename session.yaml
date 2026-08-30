@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Session
-  version: 4.0.0
+  version: 4.1.0
   summary: Application session lifecycle API.
   description: |
     Use the Session API to verify application tokens, rotate refresh tokens,

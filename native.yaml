@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Native
-  version: 4.0.0
+  version: 4.1.0
   summary: Native client entry point for the Sudomimus authentication platform.
   description: |
     Native clients exchange a Steam Web API ticket, an application-scoped
@@ -409,7 +409,7 @@ components:
       type: apiKey
       in: header
       name: Authorization
-      description: '`SudomimusPublicKeyJWT <compact signed assertion>`.'
+      description: "`SudomimusPublicKeyJWT <compact signed assertion>`."
   headers:
     CredentialCacheControl:
       description: Prevent storage of the credential-bearing response.

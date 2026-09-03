@@ -585,6 +585,11 @@ components:
         - $ref: "#/components/schemas/AuthenticationRuleConstraintSteamTicket"
         - $ref: "#/components/schemas/AuthenticationRuleConstraintSteamOpenId"
         - $ref: "#/components/schemas/AuthenticationRuleConstraintAccessKeyDirect"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintAgentAccessKeyDirect"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintAutomationAccessKeyDirect"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintPublicKeyDirect"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintAgentPublicKeyDirect"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintAutomationPublicKeyDirect"
         - $ref: "#/components/schemas/AuthenticationRuleConstraintGoogleOAuth"
         - $ref: "#/components/schemas/AuthenticationRuleConstraintGitHubOAuth"
         - $ref: "#/components/schemas/AuthenticationRuleConstraintDiscordOAuth"
@@ -601,6 +606,11 @@ components:
           STEAM_TICKET: "#/components/schemas/AuthenticationRuleConstraintSteamTicket"
           STEAM_OPENID: "#/components/schemas/AuthenticationRuleConstraintSteamOpenId"
           ACCESS_KEY_DIRECT: "#/components/schemas/AuthenticationRuleConstraintAccessKeyDirect"
+          AGENT_ACCESS_KEY_DIRECT: "#/components/schemas/AuthenticationRuleConstraintAgentAccessKeyDirect"
+          AUTOMATION_ACCESS_KEY_DIRECT: "#/components/schemas/AuthenticationRuleConstraintAutomationAccessKeyDirect"
+          PUBLIC_KEY_DIRECT: "#/components/schemas/AuthenticationRuleConstraintPublicKeyDirect"
+          AGENT_PUBLIC_KEY_DIRECT: "#/components/schemas/AuthenticationRuleConstraintAgentPublicKeyDirect"
+          AUTOMATION_PUBLIC_KEY_DIRECT: "#/components/schemas/AuthenticationRuleConstraintAutomationPublicKeyDirect"
           GOOGLE_OAUTH: "#/components/schemas/AuthenticationRuleConstraintGoogleOAuth"
           GITHUB_OAUTH: "#/components/schemas/AuthenticationRuleConstraintGitHubOAuth"
           DISCORD_OAUTH: "#/components/schemas/AuthenticationRuleConstraintDiscordOAuth"
@@ -687,6 +697,61 @@ components:
               enum: [ACCESS_KEY_DIRECT]
             payload:
               $ref: "#/components/schemas/AuthenticationRuleAccessKeyDirectPayload"
+    AuthenticationRuleConstraintAgentAccessKeyDirect:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [AGENT_ACCESS_KEY_DIRECT]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRuleAgentAccessKeyDirectPayload"
+    AuthenticationRuleConstraintAutomationAccessKeyDirect:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [AUTOMATION_ACCESS_KEY_DIRECT]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRuleAutomationAccessKeyDirectPayload"
+    AuthenticationRuleConstraintPublicKeyDirect:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [PUBLIC_KEY_DIRECT]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRulePublicKeyDirectPayload"
+    AuthenticationRuleConstraintAgentPublicKeyDirect:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [AGENT_PUBLIC_KEY_DIRECT]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRuleAgentPublicKeyDirectPayload"
+    AuthenticationRuleConstraintAutomationPublicKeyDirect:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [AUTOMATION_PUBLIC_KEY_DIRECT]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRuleAutomationPublicKeyDirectPayload"
     AuthenticationRuleConstraintGoogleOAuth:
       allOf:
         - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
@@ -812,6 +877,21 @@ components:
       type: object
       description: |
         Enables Native API `/direct-issue/access-key` authentication.
+      additionalProperties: false
+    AuthenticationRuleAgentAccessKeyDirectPayload:
+      type: object
+      additionalProperties: false
+    AuthenticationRuleAutomationAccessKeyDirectPayload:
+      type: object
+      additionalProperties: false
+    AuthenticationRulePublicKeyDirectPayload:
+      type: object
+      additionalProperties: false
+    AuthenticationRuleAgentPublicKeyDirectPayload:
+      type: object
+      additionalProperties: false
+    AuthenticationRuleAutomationPublicKeyDirectPayload:
+      type: object
       additionalProperties: false
     AuthenticationRuleGoogleOAuthPayload:
       type: object

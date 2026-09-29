@@ -160,6 +160,8 @@ paths:
             - `AccountDeleted` — the realizing account has been erased.
             - `ClaimConsentRequired` — interactive login is required to
               establish the current claim grant.
+            - `LegalAgreementRequired` — the account must complete current
+              basic terms confirmation in a new browser Inquiry.
             - `RequiredClaimDataMissing` — a REQUIRED claim cannot currently
               be disclosed. An approved account without a surname is not
               missing data and discloses an empty surname.

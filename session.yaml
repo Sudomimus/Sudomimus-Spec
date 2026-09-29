@@ -147,6 +147,8 @@ paths:
             - `ApplicationNotActive` — the application is unavailable.
             - `ClaimConsentRequired` or `RequiredClaimDataMissing` — current
               claim requirements are not satisfied.
+            - `LegalAgreementRequired` — the account must accept the current
+              basic terms through a new browser sign-in before refresh.
             - `EmailDomainBlocked`, `EmailDomainRequiresSso`, or
               `SsoAuthorityConflict` — email-domain policy prevents issuance.
           content:

@@ -96,6 +96,8 @@ paths:
               `SsoAuthorityConflict` — email-domain policy prevents issuance.
             - `ClaimConsentRequired` or `RequiredClaimDataMissing` — browser
               interaction is required before direct issuance can continue.
+            - `LegalAgreementRequired` — the account must accept the current
+              basic terms during a browser sign-in before credential issuance.
 
             Claim-gate responses also include `claims` and an `errand` browser
             handoff. Open `errand.url`, wait or poll its status, then retry this
@@ -198,6 +200,7 @@ paths:
             Application rule, Account lifecycle, email-domain policy, or claim
             requirements refused issuance. Claim-gate responses use the same
             `claims` and `errand` handoff as AccessKey issuance.
+            `LegalAgreementRequired` supplies the current basic terms URL.
           content:
             application/json:
               schema:
@@ -240,7 +243,11 @@ paths:
         and submits them with the application anchor and Steam App ID. The
         ticket must satisfy the application's configured rules and is
         single-use for this exchange. Verify the returned tokens through the
-        application's Session JWKS.
+        application's Session JWKS. If the account has not accepted the current
+        basic terms, the response includes the exact bilingual text and hashes.
+        Render one locale in the native client and obtain a separate affirmative
+        confirmation. Acquire a fresh Steam ticket and retry with
+        `agreementAcceptance` bound to the displayed revision, locale, and hash.
       requestBody:
         required: true
         content:
@@ -284,6 +291,8 @@ paths:
               `SsoAuthorityConflict` — email-domain policy prevents issuance.
             - `ClaimConsentRequired` or `RequiredClaimDataMissing` — browser
               interaction is required before direct issuance can continue.
+            - `LegalAgreementRequired` — the native client must display and
+              confirm the exact basic terms before retrying.
 
             Claim-gate responses also include `claims` and an `errand` browser
             handoff. Open `errand.url`, wait or poll its status, then acquire a
@@ -311,6 +320,8 @@ paths:
               or is being processed.
             - `AuthorizationArtifactStale` — identity authority changed during
               the attempt.
+            - `LegalAgreementRevisionMismatch` — the submitted terms revision,
+              locale, or hash no longer matches the server's current text.
 
             Acquire a fresh ticket before retrying either condition.
           content:
@@ -536,6 +547,28 @@ components:
             allow-listed by the application's `STEAM_TICKET` authentication
             rule. Steam binds tickets to their issuing App ID; passing a
             different value fails verification.
+        agreementAcceptance:
+          type: object
+          additionalProperties: false
+          required: [revision, locale, contentSha256, confirmed]
+          description: |
+            Present only after the native client displayed the complete
+            versioned basic terms and received an affirmative confirmation.
+            A prior `LegalAgreementRequired` response supplies the text and
+            digest. Use a new Steam ticket for this retry.
+          properties:
+            revision:
+              type: integer
+              minimum: 1
+            locale:
+              type: string
+              enum: [en-US, zh-CN]
+            contentSha256:
+              type: string
+              pattern: "^[a-f0-9]{64}$"
+            confirmed:
+              type: boolean
+              const: true
     DirectIssueSteamTicketResponse:
       type: object
       required:
@@ -633,17 +666,97 @@ components:
       description: |
         403 body. For the claim-gate reasons (`ClaimConsentRequired`,
         `RequiredClaimDataMissing`) the `claims` view and the `errand`
-        handoff are present; for every other reason only `reason` is set.
+        handoff are present. For `LegalAgreementRequired`, `agreement` contains
+        the complete versioned basic terms for Steam native presentation, or
+        `termsUrl` identifies the version to accept during browser sign-in for
+        provisioned AccessKey and PublicKey credentials.
       required:
         - reason
       properties:
         reason:
           type: string
           description: Stable machine-readable reason code.
+        requiredRevision:
+          type: integer
+          minimum: 1
+        termsUrl:
+          type: string
+          format: uri
+        confirmation:
+          type: string
         claims:
           $ref: "#/components/schemas/ClaimsStateView"
         errand:
           $ref: "#/components/schemas/ErrandHandoff"
+        agreement:
+          $ref: "#/components/schemas/NativeLegalAgreementChallenge"
+    NativeLegalAgreementChallenge:
+      type: object
+      required: [documentType, requiredRevision, requiredAcceptanceEpoch, locales]
+      properties:
+        documentType:
+          type: string
+          const: BASIC_TERMS
+        requiredRevision:
+          type: integer
+          minimum: 1
+        requiredAcceptanceEpoch:
+          type: integer
+          minimum: 1
+        locales:
+          type: object
+          required: [en-US, zh-CN]
+          properties:
+            en-US:
+              $ref: "#/components/schemas/NativeLegalAgreementLocale"
+            zh-CN:
+              $ref: "#/components/schemas/NativeLegalAgreementLocale"
+    NativeLegalAgreementLocale:
+      type: object
+      required: [contentSha256, versionUrl, document]
+      properties:
+        contentSha256:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+        versionUrl:
+          type: string
+          format: uri
+        document:
+          $ref: "#/components/schemas/NativeLegalAgreementDocumentV1"
+    NativeLegalAgreementDocumentV1:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, title, sections]
+      properties:
+        schemaVersion:
+          type: integer
+          const: 1
+        title:
+          type: string
+        sections:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [heading, paragraphs]
+            properties:
+              heading:
+                type: string
+              paragraphs:
+                type: array
+                minItems: 1
+                items:
+                  type: string
+              link:
+                type: object
+                additionalProperties: false
+                required: [label, url]
+                properties:
+                  label:
+                    type: string
+                  url:
+                    type: string
+                    format: uri
     CreateErrandRequest:
       type: object
       additionalProperties: false

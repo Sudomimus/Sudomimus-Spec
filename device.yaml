@@ -128,6 +128,8 @@ paths:
             - `slow_down` - the client is polling too quickly. Use the returned
               `interval` value for subsequent polls.
             - `access_denied` - the user or current policy denied issuance.
+              A preexisting approval is also refused when the account lacks
+              the current basic terms receipt. Start a new browser approval.
             - `expired_token` - the device authorization session expired.
             - `invalid_request` - the request body is missing, malformed, or
               structurally invalid; or the `deviceCode` is unknown or has

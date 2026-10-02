@@ -295,6 +295,10 @@ paths:
         Any genuine signed version whose `sid`, `aud`, `jti`, and
         `rotationVersion` bind to that session may authorize the revocation;
         accepting an older genuine version here does not make it refreshable.
+        An unexpired genuine historical credential retains this authority after
+        OIDC scope narrowing removes `offline_access` and closes refresh
+        capability. Logout revokes that access-only session without restoring
+        refresh capability.
         No client-auth JWT is required. The operation is idempotent.
       requestBody:
         required: true

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sudomimus Device
-  version: 4.1.0
+  version: 5.0.0
   summary: Device authorization API for public clients.
   description: |
     Public clients use the Device API to obtain a device code, send the user to
@@ -242,11 +242,22 @@ components:
         verificationUri:
           type: string
           format: uri
-          description: Browser page where the user enters or confirms `userCode`.
+          not:
+            pattern: '[\u0000-\u001F\u007F-\u009F]'
+          description: >-
+            Absolute HTTPS browser URL without credentials or surrounding whitespace.
+            HTTP is permitted only for local development on localhost, 127.0.0.1,
+            or [::1]. Clients must reject control characters before display or launch.
+            The user enters or confirms `userCode` on this page.
         verificationUriComplete:
           type: string
           format: uri
-          description: Browser URL pre-filled with `userCode`.
+          not:
+            pattern: '[\u0000-\u001F\u007F-\u009F]'
+          description: >-
+            Browser URL pre-filled with `userCode`. The same scheme, host,
+            credential, whitespace, and control-character constraints as
+            verificationUri apply.
         expiresIn:
           type: integer
           minimum: 1

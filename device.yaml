@@ -8,6 +8,9 @@ info:
     browser approval, and poll for ordinary Sudomimus application tokens. No
     client secret is required. After issuance, use the Session API to refresh,
     inspect, or revoke the resulting session.
+    During browser approval, email discovery offers OTP only when the requested
+    owned address has an enabled email-OTP credential. An OTP credential for
+    another address on the same account does not enable that option.
   license:
     name: MIT
     identifier: MIT

@@ -748,6 +748,36 @@ components:
                 minItems: 1
                 items:
                   type: string
+              table:
+                type: object
+                additionalProperties: false
+                required: [caption, columns, rows, footer]
+                description: Render the complete reference table and its footer alongside the section paragraphs.
+                properties:
+                  caption:
+                    type: string
+                  columns:
+                    type: array
+                    minItems: 1
+                    items:
+                      type: string
+                  rows:
+                    type: array
+                    items:
+                      type: array
+                      description: Cells in column order.
+                      items:
+                        type: object
+                        additionalProperties: false
+                        required: [text]
+                        properties:
+                          text:
+                            type: string
+                          url:
+                            type: string
+                            format: uri
+                  footer:
+                    type: string
               link:
                 type: object
                 additionalProperties: false

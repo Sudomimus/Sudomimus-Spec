@@ -598,6 +598,8 @@ components:
         - $ref: "#/components/schemas/AuthenticationRuleConstraintDiscordOAuth"
         - $ref: "#/components/schemas/AuthenticationRuleConstraintBattleNetOAuth"
         - $ref: "#/components/schemas/AuthenticationRuleConstraintXOAuth"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintGitLabOAuth"
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintMicrosoftOAuth"
         - $ref: "#/components/schemas/AuthenticationRuleConstraintEnterpriseFederationApplicationManaged"
         - $ref: "#/components/schemas/AuthenticationRuleConstraintEnterpriseFederationDomainManaged"
       discriminator:
@@ -619,6 +621,8 @@ components:
           DISCORD_OAUTH: "#/components/schemas/AuthenticationRuleConstraintDiscordOAuth"
           BATTLENET_OAUTH: "#/components/schemas/AuthenticationRuleConstraintBattleNetOAuth"
           X_OAUTH: "#/components/schemas/AuthenticationRuleConstraintXOAuth"
+          GITLAB_OAUTH: "#/components/schemas/AuthenticationRuleConstraintGitLabOAuth"
+          MICROSOFT_OAUTH: "#/components/schemas/AuthenticationRuleConstraintMicrosoftOAuth"
           ENTERPRISE_FEDERATION_APPLICATION_MANAGED: "#/components/schemas/AuthenticationRuleConstraintEnterpriseFederationApplicationManaged"
           ENTERPRISE_FEDERATION_DOMAIN_MANAGED: "#/components/schemas/AuthenticationRuleConstraintEnterpriseFederationDomainManaged"
     AuthenticationRuleConstraintCommon:
@@ -810,6 +814,28 @@ components:
               enum: [X_OAUTH]
             payload:
               $ref: "#/components/schemas/AuthenticationRuleXOAuthPayload"
+    AuthenticationRuleConstraintMicrosoftOAuth:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [MICROSOFT_OAUTH]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRuleMicrosoftOAuthPayload"
+    AuthenticationRuleConstraintGitLabOAuth:
+      allOf:
+        - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
+        - type: object
+          required: [method, payload]
+          properties:
+            method:
+              type: string
+              enum: [GITLAB_OAUTH]
+            payload:
+              $ref: "#/components/schemas/AuthenticationRuleGitLabOAuthPayload"
     AuthenticationRuleConstraintEnterpriseFederationApplicationManaged:
       allOf:
         - $ref: "#/components/schemas/AuthenticationRuleConstraintCommon"
@@ -966,6 +992,14 @@ components:
         X account is accepted as long as the application's rule set allows
         X_OAUTH at all. Empty payload. X is an email-less provider, so
         Layer-2 EMAIL rules fail closed against an X-only account.
+      additionalProperties: false
+    AuthenticationRuleMicrosoftOAuthPayload:
+      type: object
+      description: Public Microsoft personal and work or school accounts. Empty payload. Microsoft email claims do not establish mailbox ownership.
+      additionalProperties: false
+    AuthenticationRuleGitLabOAuthPayload:
+      type: object
+      description: Public GitLab.com accounts. Empty payload. Email ownership requires a verified email claim from GitLab.com.
       additionalProperties: false
     AuthenticationRuleEnterpriseFederationApplicationManagedPayload:
       type: object

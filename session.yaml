@@ -521,7 +521,7 @@ components:
           type: string
         family_name:
           type: string
-          description: The approved surname. Empty when the account legitimately has no surname.
+          description: The approved structured surname. Empty when an approved structured first name is known and the account has no surname. A complete display name alone does not establish this claim.
         picture:
           type: string
           format: uri

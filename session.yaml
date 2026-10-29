@@ -246,6 +246,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BearerError"
+        "500":
+          description: Unexpected identity or avatar dependency failure. The token is not classified as invalid, and private dependency details are withheld.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /claim-state:
     get:
       operationId: claimState
